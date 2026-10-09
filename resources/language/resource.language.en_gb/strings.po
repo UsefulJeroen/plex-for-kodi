@@ -3476,3 +3476,31 @@ msgstr ""
 msgctxt "#35129"
 msgid "No matching movies or shows found."
 msgstr ""
+
+msgctxt "#35130"
+msgid "Ratings and Reviews"
+msgstr ""
+
+msgctxt "#35131"
+msgid "Browse all reviews: Top, Recent, Popular, Friends"
+msgstr ""
+
+msgctxt "#35132"
+msgid "Top"
+msgstr ""
+
+msgctxt "#35133"
+msgid "Recent"
+msgstr ""
+
+msgctxt "#35134"
+msgid "Popular"
+msgstr ""
+
+msgctxt "#35135"
+msgid "Back"
+msgstr ""
+
+msgctxt "#35136"
+msgid "Refresh replies"
+msgstr ""

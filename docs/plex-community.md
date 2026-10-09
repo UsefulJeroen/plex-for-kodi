@@ -19,9 +19,20 @@ numeric ratings and Rotten Tomatoes critic excerpts in upstream PM4K.
   its reviews; on an episode list the selected episode is the review target.
 - On Discover/watchlist movie pages, the **More** (three-dot) button opens
   community reviews directly.
-- Select a review to read its full text, then select **Discussion** to read
-  its comments or **View profile** to visit the author. Review pages and
-  discussions have explicit next/previous page controls.
+- Movie and episode title pages now include an inline **Ratings and Reviews**
+  carousel: circular avatars, author/date, five-star ratings (including halves),
+  two-line excerpts and discussion counts. The row respects PM4K's existing
+  watched/unwatched review visibility preference. Critic excerpts remain after
+  community cards. The final community card opens all reviews.
+- **Plex user reviews** opens a custom PM4K screen with **Top**, **Recent**,
+  **Popular**, **Friends**, and next/previous page controls.
+- Selecting a review opens a Plex HTPC-style two-column reader: title artwork
+  and summary on the left, reviewer/full text on the right, replies below.
+  Up/down scrolls the full review; Down at the bottom moves into replies.
+  Select a reply to read its full text; Back restores the discussion and
+  selected review. Select the author to open their profile. **Refresh replies**
+  reloads the discussion. Review and discussion pagination retain the previous
+  page and selection without refetching; a failed page leaves the current one.
 - Spoiler-marked reviews hide their text in lists. Opening a review asks
   whether to show its text and discussion. That choice is remembered only
   while the current community browser remains open.
@@ -124,3 +135,20 @@ The Ugoos was unreachable at its prior IP during development. Installation,
 remote-control navigation and playback on the device remain to be validated.
 Live API checks were read-only; no reviews, comments, friendships or
 watchlist entries were changed.
+
+## Review presentation validation (social.2)
+
+Compared the actual Plex HTPC Ratings and Reviews carousel and full-review
+screen with this implementation in portable Kodi 21.3 on Windows. The
+presentation uses PM4K fonts/backgrounds and Kodi remote navigation; it is
+not an exact copy of Plex's UI. This remains a read-only community preview:
+reaction counts/buttons and posting/editing reviews or replies are not
+implemented. Private Plex APIs can change independently of PM4K releases.
+
+Final real-Kodi checks: inline Dune cards; full Varun review with the same
+actual reply displayed in Plex HTPC; long-review scrolling; opening the reply
+in the styled reader and Back restoring scroll/focus; Top/Popular/Recent
+switches and empty-state display; multiple review pages and Previous restoring
+cached results. The full suite passed 751 tests and 811 subtests, including
+all theme templates. Temporary profile-validation startup code was restored
+and its PIN file was consumed and removed. No build was deployed to Ugoos.

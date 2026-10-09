@@ -171,9 +171,11 @@ class BrowserTest(KodiTestCase):
 
     def test_revealing_a_review_is_remembered_only_for_this_browser(self):
         node = activity(hasSpoilers=True)
-        ENV.dialog_answers.extend([True, None, -1, None, -1])
-        self.browser.read_activity(node)
-        self.browser.read_activity(node)
+        ENV.dialog_answers.append(True)
+        with mock.patch('lib.windows.reviews.ReviewWindow.open') as reader:
+            self.browser.read_activity(node)
+            self.browser.read_activity(node)
+        self.assertEqual(2, reader.call_count)
         self.assertEqual(1, len([call for call in ENV.dialog_calls if call[0] == 'yesno']))
         self.assertTrue(ui.CommunityBrowser(client=self.client).revealed == set())
 
@@ -283,3 +285,51 @@ class DiscoverReviewMenuTest(KodiTestCase):
         self.assertEqual([None, None, None], window.collectionPaginators)
         for control in window.collectionListControls:
             control.reset.assert_called_once_with()
+
+
+class ReviewPresentationTest(KodiTestCase):
+    def test_rating_uses_five_star_scale_and_handles_missing_rating(self):
+        from lib.windows.reviews import rating_label
+        self.assertEqual('★★★★★', rating_label(10))
+        self.assertEqual('★★★★½', rating_label(9))
+        for value in (None, '8', float('nan'), float('inf'), -1, 11, True):
+            self.assertEqual('', rating_label(value))
+
+    def test_review_cards_escape_text_and_hide_spoilers(self):
+        from lib.windows.reviews import review_item
+        item = review_item(activity(hasSpoilers=True, message='secret ending', rating=8,
+                                    date='2025-01-26T00:00:00Z',
+                                    userV2=dict(USER, displayName='[B]Example[/B]')))
+        self.assertNotIn('secret', item.getProperty('text'))
+        self.assertEqual('★★★★☆', item.getProperty('stars'))
+        self.assertEqual('Discussion (4)', item.getProperty('discussion'))
+        self.assertNotIn('[B]', item.getLabel())
+        self.assertEqual('Jan 26, 2025', item.getLabel2())
+
+    def test_remote_avatar_cannot_read_local_paths(self):
+        from lib.windows.reviews import avatar_url
+        for value in ('file:///C:/secret', 'special://profile/foo', 'http://example.com/a',
+                      'https://user:pass@example.com/a', None, {}):
+            self.assertEqual('', avatar_url(value))
+        self.assertEqual('https://example.com/a', avatar_url('https://example.com/a'))
+
+    def test_failed_review_page_preserves_cursor_and_cards(self):
+        from lib.windows.reviews import ReviewsWindow
+        window = mock.Mock(cursor='old', current={'nodes': [activity()], 'cursor': 'next'}, sort='TOP')
+        window.browser.run.return_value = None
+        self.assertFalse(ReviewsWindow.load_page(window, 'next'))
+        self.assertEqual('old', window.cursor)
+        self.assertEqual('next', window.current['cursor'])
+        window.render_page.assert_not_called()
+
+    def test_next_then_previous_restores_review_selection(self):
+        from lib.windows.reviews import ReviewsWindow
+        current = {'nodes': [activity()], 'cursor': 'next'}
+        window = mock.Mock(cursor=None, current=current, history=[])
+        window.cards.getSelectedPosition.return_value = 5
+        window.load_page.return_value = True
+        ReviewsWindow.onClick(window, 306)
+        self.assertEqual([(None, current, 5)], window.history)
+        ReviewsWindow.onClick(window, 305)
+        window.render_page.assert_called_once_with(5)
+        self.assertEqual([], window.history)

@@ -1,0 +1,224 @@
+# coding=utf-8
+"""Plex-style review cards and a title/review/discussion screen."""
+from __future__ import absolute_import
+
+import datetime
+import math
+from urllib.parse import urlsplit
+
+from lib import util
+from lib.i18n import T
+from . import kodigui
+from .community import text, user_name, activity_preview
+
+
+def date_label(value):
+    try:
+        date = datetime.datetime.fromisoformat(str(value).replace('Z', '+00:00'))
+        return date.strftime('%b %d, %Y').replace(' 0', ' ')
+    except (ValueError, TypeError, OverflowError):
+        return text(value)
+
+
+def avatar_url(value):
+    # Never let remotely supplied image paths resolve local files or Kodi protocols.
+    if not isinstance(value, str):
+        return ''
+    try:
+        url = urlsplit(value)
+    except ValueError:
+        return ''
+    return value if url.scheme == 'https' and url.hostname and not url.username and not url.password else ''
+
+
+def rating_label(value):
+    if isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value) and 0 <= value <= 10:
+        stars = value / 2
+        full = int(stars)
+        return '★' * full + ('½' if stars > full else '') + '☆' * (5 - math.ceil(stars))
+    return ''
+
+
+def star_texture(value):
+    return 'script.plex/community-stars/{}.png'.format(int(math.floor(value + 0.5))) if rating_label(value) else ''
+
+
+def review_item(node):
+    user = node.get('userV2') or node.get('user') or {}
+    item = kodigui.ManagedListItem(user_name(user), date_label(node.get('date')),
+                                  thumbnailImage=avatar_url(user.get('avatar')), data_source=node)
+    item.setProperty('text', activity_preview(node))
+    item.setProperty('stars', rating_label(node.get('rating')))
+    item.setProperty('star.texture', star_texture(node.get('rating')))
+    item.setProperty('community', '1')
+    item.setProperty('discussion', T(35115, 'Discussion') + ' ({})'.format(node.get('commentCount') or 0))
+    return item
+
+
+class ReviewBase(kodigui.ControlledWindow):
+    path = util.ADDON.getAddonInfo('path')
+    theme = 'Main'
+    res = '1080i'
+    width = 1920
+    height = 1080
+    dismissOnClose = True
+
+    def __init__(self, *args, **kwargs):
+        super(ReviewBase, self).__init__(*args, **kwargs)
+        self.browser = kwargs['browser']
+        self.video = kwargs.get('video')
+
+    def title_info(self):
+        video = self.video or getattr(self.browser.parent, 'video', None)
+        if video is not None:
+            self.setProperty('title', text(video.defaultTitle))
+            self.setProperty('summary', text(video.summary))
+            self.setProperty('year', text(video.year))
+            self.setProperty('poster', (video.art or video.defaultThumb).asTranscodedImageURL(*util.scaleResolution(520, 292)))
+        if self.browser.parent:
+            self.setProperty('background', self.browser.parent.getProperty('background'))
+
+
+class ReviewsWindow(ReviewBase):
+    xmlFile = 'script-plex-reviews.xml'
+
+    def __init__(self, *args, **kwargs):
+        super(ReviewsWindow, self).__init__(*args, **kwargs)
+        self.sort = 'TOP'
+        self.cursor = None
+        self.current = None
+        self.history = []
+
+    def onFirstInit(self):
+        self.cards = kodigui.ManagedControlList(self, 401, 3)
+        self.title_info()
+        self.load_page()
+
+    def load_page(self, cursor=None):
+        page = self.browser.run(self.browser.fetch, self.browser.client.reviews,
+                               str(self.video.guid), self.sort, cursor)
+        if page is None:
+            if self.current is None:
+                self.setProperty('status', T(35119, 'Could not connect to Plex. Please try again.'))
+                self.setFocusId(301)
+            return False
+        self.cursor, self.current = cursor, page
+        self.render_page()
+        return True
+
+    def render_page(self, selected=0):
+        self.setProperty('review.sort', self.sort)
+        for order, label in [('TOP', T(35132, 'Top')), ('RECENT', T(35133, 'Recent')), ('HOT', T(35134, 'Popular')), ('FRIENDS', T(35103, 'Friends'))]:
+            self.setProperty('sort.' + order, label + (' •' if order == self.sort else ''))
+        self.cards.reset()
+        self.cards.addItems([review_item(node) for node in self.current['nodes']])
+        self.setBoolProperty('has.previous', bool(self.history))
+        self.setBoolProperty('has.next', bool(self.current['cursor'] and self.current['cursor'] != self.cursor))
+        self.setProperty('status', '' if self.current['nodes'] else T(35112, 'Nothing to show here yet, or this content is private.'))
+        if self.current['nodes']:
+            self.cards.selectItem(selected)
+            self.setFocusId(401)
+        else:
+            self.setFocusId(301)
+
+    def onClick(self, controlID):
+        if controlID == 401:
+            item = self.cards.getSelectedItem()
+            if item and self.browser.reveal(item.dataSource):
+                ReviewWindow.open(browser=self.browser, node=item.dataSource, video=self.video)
+        elif controlID in (301, 302, 303, 304):
+            order = {301: 'TOP', 302: 'RECENT', 303: 'HOT', 304: 'FRIENDS'}[controlID]
+            old = self.sort
+            self.sort = order
+            if self.load_page():
+                self.history = []
+                self.setProperty('has.previous', '')
+            else:
+                self.sort = old
+        elif controlID == 305 and self.history:
+            self.cursor, self.current, selected = self.history.pop()
+            self.render_page(selected)
+        elif controlID == 306 and self.current and self.current['cursor'] != self.cursor:
+            previous = (self.cursor, self.current, self.cards.getSelectedPosition())
+            if self.load_page(self.current['cursor']):
+                self.history.append(previous)
+                self.setProperty('has.previous', '1')
+        elif controlID == 307:
+            self.doClose()
+
+
+class ReviewWindow(ReviewBase):
+    xmlFile = 'script-plex-review.xml'
+
+    def __init__(self, *args, **kwargs):
+        super(ReviewWindow, self).__init__(*args, **kwargs)
+        self.node = kwargs['node']
+        self.reply = kwargs.get('reply', False)
+        self.cursor = None
+        self.current = None
+        self.history = []
+
+    def onFirstInit(self):
+        self.comments = kodigui.ManagedControlList(self, 410, 2)
+        self.title_info()
+        user = self.node.get('userV2') or self.node.get('user') or {}
+        self.setProperty('author', user_name(user))
+        self.setProperty('avatar', avatar_url(user.get('avatar')))
+        self.setProperty('date', date_label(self.node.get('date')))
+        self.setProperty('stars', rating_label(self.node.get('rating')))
+        self.setProperty('star.texture', star_texture(self.node.get('rating')))
+        self.setBoolProperty('is.reply', self.reply)
+        self.setProperty('review', text(self.node.get('message')) or T(35125, 'Rating without a written review'))
+        self.setProperty('discussion', T(35115, 'Discussion') + ' ({})'.format(self.node.get('commentCount') or 0))
+        if not self.getProperty('title'):
+            self.setProperty('title', text((self.node.get('metadataItem') or {}).get('title')))
+        if not self.reply:
+            self.load_comments()
+        self.setFocusId(152)
+
+    def load_comments(self, cursor=None):
+        page = self.browser.run(self.browser.fetch, self.browser.client.comments, self.node['id'], cursor)
+        if page is None:
+            if self.current is None:
+                self.setProperty('comment.status', T(35119, 'Could not connect to Plex. Please try again.'))
+            return False
+        self.cursor, self.current = cursor, page
+        self.render_comments()
+        return True
+
+    def render_comments(self, selected=0):
+        self.comments.reset()
+        items = []
+        for node in self.current['nodes']:
+            item = review_item(node)
+            item.setProperty('text', text(node.get('message')))
+            items.append(item)
+        self.comments.addItems(items)
+        if items:
+            self.comments.selectItem(selected)
+        self.setProperty('comment.status', '' if items else T(35112, 'Nothing to show here yet, or this content is private.'))
+        self.setBoolProperty('has.next', bool(self.current['cursor'] and self.current['cursor'] != self.cursor))
+        self.setBoolProperty('has.previous', bool(self.history))
+
+    def onClick(self, controlID):
+        if controlID == 410:
+            item = self.comments.getSelectedItem()
+            if item:
+                # Reuse the styled reader for long replies; Back restores the discussion.
+                ReviewWindow.open(browser=self.browser, node=dict(item.dataSource, commentCount=0), video=self.video, reply=True)
+        elif controlID == 305 and self.history:
+            self.cursor, self.current, selected = self.history.pop()
+            self.render_comments(selected)
+        elif controlID == 306 and self.current and self.current['cursor'] and self.current['cursor'] != self.cursor:
+            previous = (self.cursor, self.current, self.comments.getSelectedPosition())
+            if self.load_comments(self.current['cursor']):
+                self.history.append(previous)
+                self.setProperty('has.previous', '1')
+        elif controlID == 307:
+            self.doClose()
+        elif controlID == 308 and not self.reply:
+            self.load_comments(self.cursor)
+        elif controlID == 309:
+            user = self.node.get('userV2') or self.node.get('user') or {}
+            if user.get('username'):
+                self.browser.run(self.browser.profile, user['username'])

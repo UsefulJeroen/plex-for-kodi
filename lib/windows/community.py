@@ -44,11 +44,10 @@ class _LeaveCommunity(Exception):
 
 
 def show_reviews(item, parent=None):
+    from .reviews import ReviewsWindow
     browser = CommunityBrowser(parent=parent)
     try:
-        browser.run(browser.reviews, str(item.guid), text(item.defaultTitle))
-    except _LeaveCommunity:
-        pass
+        browser.run(ReviewsWindow.open, browser=browser, video=item)
     finally:
         browser.client.close()
 
@@ -69,9 +68,9 @@ class CommunityBrowser(object):
         self.client = client or api.client_for_account()
         self.revealed = set()
 
-    def run(self, method, *args):
+    def run(self, method, *args, **kwargs):
         try:
-            return method(*args)
+            return method(*args, **kwargs)
         except api.CommunityError as exc:
             messages = {
                 'offline': T(35117, 'Plex community requires an online, full Plex account.'),
@@ -164,31 +163,8 @@ class CommunityBrowser(object):
     def read_activity(self, node):
         if not self.reveal(node):
             return
-        heading = activity_label(node)
-        message = text(node.get('message')) or T(35125, 'Rating without a written review')
-        date = text(node.get('date'))
-        xbmcgui.Dialog().textviewer(heading, date + '\n\n' + message)
-        while True:
-            choices = [('read', T(35114, 'Read review')),
-                       ('comments', T(35115, 'Discussion') + ' ({})'.format(node.get('commentCount') or 0)),
-                       ('profile', T(35116, 'View profile'))]
-            metadata = node.get('metadataItem') or {}
-            if metadata.get('id') and metadata.get('type') in ('movie', 'show'):
-                choices.append(('title', T(35126, 'View title')))
-            choice = xbmcgui.Dialog().select(heading, [label for _, label in choices])
-            if choice < 0:
-                return
-            action = choices[choice][0]
-            if action == 'read':
-                xbmcgui.Dialog().textviewer(heading, date + '\n\n' + message)
-            elif action == 'comments':
-                self.run(self.comments, node['id'], heading)
-            elif action == 'profile':
-                user = node.get('userV2') or {}
-                if user.get('username'):
-                    self.run(self.profile, user['username'])
-            elif action == 'title':
-                self.run(self.open_title, metadata)
+        from .reviews import ReviewWindow
+        ReviewWindow.open(browser=self, node=node)
 
     def comments(self, activity_id, title):
         def rows(nodes):

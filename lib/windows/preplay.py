@@ -294,6 +294,20 @@ class PrePlayWindow(kodigui.ControlledWindow, windowutils.UtilMixin, RatingsMixi
     def onClick(self, controlID):
         if controlID == self.HOME_BUTTON_ID:
             self.goHome()
+        elif controlID == self.REVIEWS_LIST_ID:
+            from . import community
+            from .reviews import ReviewWindow
+            selected = self.reviewsListControl.getSelectedItem()
+            if selected and selected.getProperty('community'):
+                if selected.getProperty('browse'):
+                    community.show_reviews(self.video, parent=self)
+                else:
+                    browser = community.CommunityBrowser(parent=self)
+                    try:
+                        if browser.reveal(selected.dataSource):
+                            browser.run(ReviewWindow.open, browser=browser, node=selected.dataSource, video=self.video)
+                    finally:
+                        browser.client.close()
         elif controlID == self.EXTRA_LIST_ID:
             self.openItem(self.extraListControl)
         elif controlID == self.RELATED_LIST_ID:
@@ -933,31 +947,44 @@ class PrePlayWindow(kodigui.ControlledWindow, windowutils.UtilMixin, RatingsMixi
         return True
 
     def fillReviews(self):
-        items = []
-        idx = 0
-
+        from . import community
+        from .reviews import review_item
+        video = self.video
+        guid = str(video.guid)
         show_reviews = util.getSetting('show_reviews1')
-        fully_watched = self.video.isFullyWatched
-
-        if (not show_reviews or not self.video.reviews or
+        fully_watched = video.isFullyWatched
+        if (not show_reviews or
                 ("unwatched" not in show_reviews and not fully_watched) or
                 ("watched" not in show_reviews and fully_watched)):
             self.reviewsListControl.reset()
             return False
-
-        for review in self.video.reviews():
-            mli = kodigui.ManagedListItem(review.source, review.tag, thumbnailImage=review.ratingImage())
-            mli.setProperty('index', str(idx))
-            mli.setProperty('text', review.text)
-            items.append(mli)
-            idx += 1
-
-        if not items:
+        items = []
+        if community.title_option(video):
+            client = community.api.client_for_account()
+            try:
+                page = client.reviews(guid, 'TOP')
+                items.extend(review_item(node) for node in page['nodes'][:6])
+                browse = kodigui.ManagedListItem(T(35100, 'Plex user reviews'), '')
+                browse.setProperty('community', '1')
+                browse.setProperty('browse', '1')
+                browse.setProperty('text', T(35131, 'Browse all reviews: Top, Recent, Popular, Friends'))
+                items.append(browse)
+            except community.api.CommunityError:
+                # Optional online content must never prevent playback or critic reviews.
+                pass
+            finally:
+                client.close()
+        if video.reviews:
+            for review in video.reviews():
+                mli = kodigui.ManagedListItem(review.source, review.tag, thumbnailImage=review.ratingImage())
+                mli.setProperty('text', review.text)
+                items.append(mli)
+        # Requests run in the existing background task; discard results after moving titles.
+        if self.closing() or self.video is not video or str(self.video.guid) != guid:
             return False
-
         self.reviewsListControl.reset()
         self.reviewsListControl.addItems(items)
-        return True
+        return bool(items)
 
 class PrePlayWindowWL(PrePlayWindow):
     xmlFile = 'script-plex-pre_play-wl.xml'
