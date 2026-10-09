@@ -534,6 +534,11 @@ class ShowWindow(kodigui.ControlledWindow, windowutils.UtilMixin, SeasonsMixin, 
         if not item:
             return
 
+        from . import reviews
+        review_option = reviews.title_option(item)
+        if review_option:
+            options.append(review_option)
+
         if item.type != 'artist':
             if item.isWatched:
                 options.append({'key': 'mark_unwatched', 'display': T(32318, 'Mark Unplayed')})
@@ -581,7 +586,9 @@ class ShowWindow(kodigui.ControlledWindow, windowutils.UtilMixin, SeasonsMixin, 
         if not choice:
             return
 
-        if choice['key'] == 'play_next':
+        if choice['key'] == 'plex_reviews':
+            reviews.show_reviews(item, parent=self)
+        elif choice['key'] == 'play_next':
             xbmc.executebuiltin('PlayerControl(Next)')
         elif choice['key'] == 'mark_watched':
             self.toggleWatched(item, state=True)

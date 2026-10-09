@@ -55,7 +55,7 @@
                 {% include "includes/wl_add_remove_buttons.xml.tpl" %}
                 {% include template with name="media" & id=307 & visible="!String.IsEmpty(Window.Property(media.multiple))" %}
                 {% include template with name="settings" & id=305 & visible="String.IsEmpty(Window.Property(disable_playback))" %}
-                {% include template with name="more" & id=306 & visible="String.IsEmpty(Window.Property(disable_playback))" %}
+                {% include template with name="more" & id=306 & visible="String.IsEmpty(Window.Property(disable_playback)) | !String.IsEmpty(Window.Property(has.user.reviews))" %}
             {% endwith %}
 
         </control>
@@ -563,7 +563,7 @@
                 <align>left</align>
                 <aligny>center</aligny>
                 <textcolor>FFFFFFFF</textcolor>
-                <label>[UPPERCASE]$ADDON[script.plexmod 32953][/UPPERCASE]</label>
+                <label>$ADDON[script.plexmod 35130]</label>
             </control>
             <control type="list" id="401">
                 <posx>0</posx>
@@ -575,140 +575,7 @@
                 <scrolltime>200</scrolltime>
                 <orientation>horizontal</orientation>
                 <preloaditems>4</preloaditems>
-                <!-- ITEM LAYOUT ########################################## -->
-                <itemlayout width="540">
-                    <control type="group">
-                        <posx>55</posx>
-                        <posy>{{ vscale(61) }}</posy>
-                        <control type="image">
-                            <posx>0</posx>
-                            <posy>0</posy>
-                            <width>520</width>
-                            <height>{{ vscale(310) }}</height>
-                            <texture>script.plex/white-square.png</texture>
-                            <colordiffuse>60000000</colordiffuse>
-                        </control>
-                        <control type="group">
-                            <posx>20</posx>
-                            <posy>{{ vscale(20) }}</posy>
-                            <control type="group">
-                                <posx>0</posx>
-                                <posy>0</posy>
-                                <control type="image">
-                                    <posx>10</posx>
-                                    <posy>{{ vscale(-5) }}</posy>
-                                    <width>70</width>
-                                    <height>{{ vscale(70) }}</height>
-                                    <texture>script.plex/reviews/$INFO[ListItem.Thumb].png</texture>
-                                </control>
-                                <control type="label">
-                                    <scroll>false</scroll>
-                                    <posx>100</posx>
-                                    <posy>0</posy>
-                                    <width>400</width>
-                                    <height>{{ vscale(30) }}</height>
-                                    <font>font10</font>
-                                    <align>left</align>
-                                    <textcolor>DDFFFFFF</textcolor>
-                                    <label>$INFO[ListItem.Label]</label>
-                                </control>
-                                <control type="label">
-                                    <scroll>false</scroll>
-                                    <posx>100</posx>
-                                    <posy>{{ vscale(30) }}</posy>
-                                    <width>400</width>
-                                    <height>{{ vscale(30) }}</height>
-                                    <font>font10</font>
-                                    <align>left</align>
-                                    <textcolor>66FFFFFF</textcolor>
-                                    <label>$INFO[ListItem.Label2]</label>
-                                </control>
-                            </control>
-                            <control type="textbox">
-                                <posx>0</posx>
-                                <posy>{{ vscale(80) }}</posy>
-                                <width>480</width>
-                                <height>{{ vscale(190) }}</height>
-                                <font>font10</font>
-                                <align>left</align>
-                                <textcolor>AAFFFFFF</textcolor>
-                                <label>$INFO[ListItem.Property(text)]</label>
-                            </control>
-                        </control>
-                    </control>
-                </itemlayout>
-
-                <!-- FOCUSED LAYOUT ####################################### -->
-                <focusedlayout width="540">
-                    <control type="group">
-                        <posx>55</posx>
-                        <posy>{{ vscale(61) }}</posy>
-                        <control type="image">
-                            <posx>0</posx>
-                            <posy>0</posy>
-                            <width>520</width>
-                            <height>{{ vscale(310) }}</height>
-                            <texture>script.plex/white-square.png</texture>
-                            <colordiffuse>80000000</colordiffuse>
-                        </control>
-                        <control type="group">
-                            <posx>20</posx>
-                            <posy>{{ vscale(20) }}</posy>
-                            <control type="group">
-                                <posx>0</posx>
-                                <posy>0</posy>
-                                <control type="image">
-                                    <posx>10</posx>
-                                    <posy>{{ vscale(-5) }}</posy>
-                                    <width>70</width>
-                                    <height>{{ vscale(70) }}</height>
-                                    <texture>script.plex/reviews/$INFO[ListItem.Thumb].png</texture>
-                                </control>
-                                <control type="label">
-                                    <scroll>false</scroll>
-                                    <posx>100</posx>
-                                    <posy>0</posy>
-                                    <width>400</width>
-                                    <height>{{ vscale(30) }}</height>
-                                    <font>font10</font>
-                                    <align>left</align>
-                                    <textcolor>DDFFFFFF</textcolor>
-                                    <label>$INFO[ListItem.Label]</label>
-                                </control>
-                                <control type="label">
-                                    <scroll>false</scroll>
-                                    <posx>100</posx>
-                                    <posy>{{ vscale(30) }}</posy>
-                                    <width>400</width>
-                                    <height>{{ vscale(30) }}</height>
-                                    <font>font10</font>
-                                    <align>left</align>
-                                    <textcolor>66FFFFFF</textcolor>
-                                    <label>$INFO[ListItem.Label2]</label>
-                                </control>
-                            </control>
-                            <control type="textbox">
-                                <posx>0</posx>
-                                <posy>{{ vscale(80) }}</posy>
-                                <width>480</width>
-                                <height>{{ vscale(190) }}</height>
-                                <font>font10</font>
-                                <align>left</align>
-                                <textcolor>DDFFFFFF</textcolor>
-                                <label>$INFO[ListItem.Property(text)]</label>
-                                <autoscroll delay="6000" time="3000" repeat="12000">Control.HasFocus(401)</autoscroll>
-                            </control>
-                        </control>
-                        <control type="image">
-                            <visible>Control.HasFocus(401)</visible>
-                            <posx>-5</posx>
-                            <posy>{{ vscale(-5) }}</posy>
-                            <width>530</width>
-                            <height>{{ vscale(320) }}</height>
-                            <texture border="10">script.plex/home/selected.png</texture>
-                        </control>
-                    </control>
-                </focusedlayout>
+                {% include "includes/reviews_cards.xml.tpl" %}
             </control>
         </control>
         <!-- /REVIEWS -->

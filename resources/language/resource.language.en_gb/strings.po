@@ -3356,3 +3356,135 @@ msgstr ""
 msgctxt "#35049"
 msgid "Local mode reaches your server over plain HTTP, so \"Allow Insecure Connections\" has been set to \"Always\".\n\nYour server needs the matching setting: in Plex under Settings > Network, \"Secure connections\" has to be \"Preferred\" - with \"Required\" the server refuses these connections."
 msgstr ""
+
+msgctxt "#35100"
+msgid "Plex user reviews"
+msgstr ""
+
+msgctxt "#35103"
+msgid "Friends"
+msgstr ""
+
+msgctxt "#35109"
+msgid "May contain spoilers"
+msgstr ""
+
+msgctxt "#35110"
+msgid "Next page"
+msgstr ""
+
+msgctxt "#35111"
+msgid "Previous page"
+msgstr ""
+
+msgctxt "#35112"
+msgid "Nothing to show here yet, or this content is private."
+msgstr ""
+
+msgctxt "#35113"
+msgid "Show this review and its discussion?"
+msgstr ""
+
+msgctxt "#35115"
+msgid "Discussion"
+msgstr ""
+
+msgctxt "#35117"
+msgid "Plex user reviews require an online, full Plex account."
+msgstr ""
+
+msgctxt "#35118"
+msgid "Plex did not accept this login. Check your Plex account sign-in."
+msgstr ""
+
+msgctxt "#35119"
+msgid "Could not connect to Plex. Please try again."
+msgstr ""
+
+msgctxt "#35120"
+msgid "Plex is busy. Please try again later."
+msgstr ""
+
+msgctxt "#35121"
+msgid "This title needs a modern Plex Movie or Plex Series match."
+msgstr ""
+
+msgctxt "#35122"
+msgid "This review is unavailable or private."
+msgstr ""
+
+msgctxt "#35123"
+msgid "Plex could not load this page. Please try again later."
+msgstr ""
+
+msgctxt "#35124"
+msgid "Plex user"
+msgstr ""
+
+msgctxt "#35125"
+msgid "Rating without a written review"
+msgstr ""
+
+msgctxt "#35130"
+msgid "Ratings and Reviews"
+msgstr ""
+
+msgctxt "#35131"
+msgid "Browse all reviews: Top, Recent, Popular, Friends"
+msgstr ""
+
+msgctxt "#35132"
+msgid "Top"
+msgstr ""
+
+msgctxt "#35133"
+msgid "Recent"
+msgstr ""
+
+msgctxt "#35134"
+msgid "Popular"
+msgstr ""
+
+msgctxt "#35135"
+msgid "Back"
+msgstr ""
+
+msgctxt "#35136"
+msgid "Refresh replies"
+msgstr ""
+
+msgctxt "#35137"
+msgid "React to this review"
+msgstr ""
+
+msgctxt "#35138"
+msgid "Like"
+msgstr ""
+
+msgctxt "#35139"
+msgid "Dislike"
+msgstr ""
+
+msgctxt "#35140"
+msgid "Love"
+msgstr ""
+
+msgctxt "#35141"
+msgid "Laugh"
+msgstr ""
+
+msgctxt "#35142"
+msgid "Applaud"
+msgstr ""
+
+msgctxt "#35143"
+msgid "Question"
+msgstr ""
+
+msgctxt "#35144"
+msgid "React"
+msgstr ""
+
+msgctxt "#35145"
+msgid "Remove reaction"
+msgstr ""
