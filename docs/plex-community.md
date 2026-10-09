@@ -152,3 +152,39 @@ switches and empty-state display; multiple review pages and Previous restoring
 cached results. The full suite passed 751 tests and 811 subtests, including
 all theme templates. Temporary profile-validation startup code was restored
 and its PIN file was consumed and removed. No build was deployed to Ugoos.
+
+## Review reactions (social.3)
+
+The approved inline-card and two-column reader layout is retained. Review
+cards now display Plex's reaction icons, total, and your selected reaction.
+The full review offers a quick Like button and a styled six-emoji React
+picker: Like, Dislike, Love, Laugh, Applaud, and Question. The current emoji
+is marked in the picker. Selecting it again removes the reaction; another
+emoji replaces it. A Remove reaction button is also available.
+
+These are real account reactions sent through Plex's `reactToActivity` API,
+with one reaction per account per activity. Counts and emoji types are taken
+from Plex's response rather than incremented locally. The previous selection
+and counts remain intact on failure. A potentially committed, timed-out
+mutation is never retried automatically; the client reads the latest state
+and disables writes if that state cannot be verified. Cancelling the picker,
+opening a review, and browsing reviews never submit a reaction. Managed
+profiles and local/offline mode cannot react. Existing privacy filters and
+spoiler behavior remain in place.
+
+Other community operations remain read-only; writing reviews and replies
+has not been added. The old unused stock-dialog review/discussion flows
+were removed. The previous social.2 limitation about reaction support is
+superseded by this release.
+
+Validation: the full suite passed 762 tests and 823 subtests, including all
+skin templates, API set/change/remove behavior, failure reconciliation,
+picker cancellation and the Kodi dialog lifecycle regression. Live Plex
+reads matched the reference review's 34 reactions and emoji types. Real
+portable Kodi 21.3 checks verified the inline icons/counts, full review
+actions, picker opening, arrow navigation and Escape cancellation with the
+count unchanged. No public reaction was submitted during validation;
+mutation behavior was verified using automated mocked API responses.
+Normal portable startup was restored and the temporary PIN file is absent.
+This version is installed in local portable Kodi; it was not deployed to
+Ugoos. Plex's private API can change independently of this addon.

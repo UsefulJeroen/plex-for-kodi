@@ -103,18 +103,6 @@ class CommunityBrowser(object):
                 return
             self.run([self.discover, self.friends, self.activity][choice])
 
-    def reviews(self, guid, title):
-        orders = [('RECENT', T(35105, 'Recent reviews')), ('TOP', T(35106, 'Top reviews')),
-                  ('HOT', T(35107, 'Popular reviews')), ('FRIENDS', T(35108, 'Friends reviews'))]
-        while True:
-            choice = xbmcgui.Dialog().select(T(35100, 'Plex user reviews') + ' - ' + title,
-                                            [order[1] for order in orders])
-            if choice < 0:
-                return
-            sort, label = orders[choice]
-            self.run(self.activities, label + ' - ' + title,
-                     lambda cursor: self.client.reviews(guid, sort, cursor))
-
     def activities(self, heading, load):
         def rows(nodes):
             return [(activity_label(node), activity_preview(node)) for node in nodes]
@@ -165,17 +153,6 @@ class CommunityBrowser(object):
             return
         from .reviews import ReviewWindow
         ReviewWindow.open(browser=self, node=node)
-
-    def comments(self, activity_id, title):
-        def rows(nodes):
-            return [(user_name(node.get('user') or {}), text(node.get('message')).replace('\n', ' ')[:180])
-                    for node in nodes]
-
-        def read(node):
-            xbmcgui.Dialog().textviewer(user_name(node.get('user') or {}),
-                                       text(node.get('date')) + '\n\n' + text(node.get('message')))
-        self.pages(T(35115, 'Discussion') + ' - ' + title,
-                   lambda cursor: self.client.comments(activity_id, cursor), rows, read)
 
     def friends(self):
         users = self.fetch(self.client.friends)

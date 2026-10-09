@@ -66,14 +66,55 @@
                 <label>$INFO[ListItem.Property(text)]</label>
             </control>
             <control type="label">
-                <posx>25</posx>
+                <posx>315</posx>
                 <posy>{{ vscale(257) }}</posy>
-                <width>560</width>
+                <width>280</width>
                 <height>{{ vscale(32) }}</height>
                 <font>font10</font>
                 <textcolor>99FFFFFF</textcolor>
                 <align>left</align>
                 <label>$INFO[ListItem.Property(discussion)]</label>
+            </control>
+            <control type="image">
+                <posx>25</posx>
+                <posy>{{ vscale(257) }}</posy>
+                <width>28</width>
+                <height>{{ vscale(28) }}</height>
+                <aspectratio>keep</aspectratio>
+                <texture>$INFO[ListItem.Property(reaction.icon.0)]</texture>
+            </control>
+            <control type="image">
+                <posx>52</posx>
+                <posy>{{ vscale(257) }}</posy>
+                <width>28</width>
+                <height>{{ vscale(28) }}</height>
+                <aspectratio>keep</aspectratio>
+                <texture>$INFO[ListItem.Property(reaction.icon.1)]</texture>
+            </control>
+            <control type="image">
+                <posx>79</posx>
+                <posy>{{ vscale(257) }}</posy>
+                <width>28</width>
+                <height>{{ vscale(28) }}</height>
+                <aspectratio>keep</aspectratio>
+                <texture>$INFO[ListItem.Property(reaction.icon.2)]</texture>
+            </control>
+            <control type="label">
+                <posx>118</posx>
+                <posy>{{ vscale(257) }}</posy>
+                <width>150</width>
+                <height>{{ vscale(32) }}</height>
+                <font>font10</font>
+                <textcolor>DDFFFFFF</textcolor>
+                <label>$INFO[ListItem.Property(reaction.count)]</label>
+            </control>
+            <control type="image">
+                <posx>555</posx>
+                <posy>{{ vscale(20) }}</posy>
+                <width>32</width>
+                <height>{{ vscale(32) }}</height>
+                <aspectratio>keep</aspectratio>
+                <texture>$INFO[ListItem.Property(reaction.mine)]</texture>
             </control>
         </control>
         <control type="group">
@@ -186,14 +227,55 @@
                 <label>$INFO[ListItem.Property(text)]</label>
             </control>
             <control type="label">
-                <posx>25</posx>
+                <posx>315</posx>
                 <posy>{{ vscale(257) }}</posy>
-                <width>560</width>
+                <width>280</width>
                 <height>{{ vscale(32) }}</height>
                 <font>font10</font>
                 <textcolor>99FFFFFF</textcolor>
                 <align>left</align>
                 <label>$INFO[ListItem.Property(discussion)]</label>
+            </control>
+            <control type="image">
+                <posx>25</posx>
+                <posy>{{ vscale(257) }}</posy>
+                <width>28</width>
+                <height>{{ vscale(28) }}</height>
+                <aspectratio>keep</aspectratio>
+                <texture>$INFO[ListItem.Property(reaction.icon.0)]</texture>
+            </control>
+            <control type="image">
+                <posx>52</posx>
+                <posy>{{ vscale(257) }}</posy>
+                <width>28</width>
+                <height>{{ vscale(28) }}</height>
+                <aspectratio>keep</aspectratio>
+                <texture>$INFO[ListItem.Property(reaction.icon.1)]</texture>
+            </control>
+            <control type="image">
+                <posx>79</posx>
+                <posy>{{ vscale(257) }}</posy>
+                <width>28</width>
+                <height>{{ vscale(28) }}</height>
+                <aspectratio>keep</aspectratio>
+                <texture>$INFO[ListItem.Property(reaction.icon.2)]</texture>
+            </control>
+            <control type="label">
+                <posx>118</posx>
+                <posy>{{ vscale(257) }}</posy>
+                <width>150</width>
+                <height>{{ vscale(32) }}</height>
+                <font>font10</font>
+                <textcolor>DDFFFFFF</textcolor>
+                <label>$INFO[ListItem.Property(reaction.count)]</label>
+            </control>
+            <control type="image">
+                <posx>555</posx>
+                <posy>{{ vscale(20) }}</posy>
+                <width>32</width>
+                <height>{{ vscale(32) }}</height>
+                <aspectratio>keep</aspectratio>
+                <texture>$INFO[ListItem.Property(reaction.mine)]</texture>
             </control>
         </control>
         <control type="group">

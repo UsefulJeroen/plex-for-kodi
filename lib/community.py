@@ -2,8 +2,8 @@
 """Plex's online community and Discover services.
 
 These are the same private APIs used by Plex Web, not Media Server APIs.
-Keep credentials out of URLs, caches and exception messages. All operations
-here are read-only; watchlist changes use PM4K's existing implementation.
+Keep credentials out of URLs, caches and exception messages. Review reactions use Plex's own mutation API; other community operations
+are read-only. Watchlist changes use PM4K's existing implementation.
 """
 from __future__ import absolute_import
 
@@ -19,7 +19,7 @@ USER_FIELDS = 'id username displayName avatar isBlocked isMuted isHidden'
 ACTIVITY_FIELDS = '''
   __typename
   ... on Activity {
-    id date commentCount isMuted
+    id date commentCount isMuted reaction reactionsCount reactionsTypes
     userV2 { %s }
     metadataItem { id title type year }
   }
@@ -36,6 +36,33 @@ REVIEWS_QUERY = '''query PM4KReviews($id: ID!, $type: ReviewsListType!,
     nodes { %s } %s
   }
 }''' % (ACTIVITY_FIELDS, PAGE_FIELDS)
+
+REACTION_TYPES = ('LIKE', 'DISLIKE', 'LOVE', 'LAUGH', 'APPLAUD', 'QUESTION')
+REACTIONS_QUERY = """query PM4KReviewReactions($id: ID!) {
+  activityByID(id: $id) {
+    ... on Activity { reaction reactionsCount reactionsTypes }
+  }
+}"""
+REACT_QUERY = """mutation PM4KReactToReview($input: ReactToActivityInput!) {
+  reactToActivity(input: $input) { reaction reactionsCount reactionsTypes }
+}"""
+
+
+def reaction_state(value):
+    if not isinstance(value, dict):
+        raise CommunityError('unavailable')
+    reaction = value.get('reaction')
+    types = value.get('reactionsTypes')
+    count = value.get('reactionsCount')
+    if reaction is not None and reaction not in REACTION_TYPES:
+        raise CommunityError('response')
+    if not isinstance(types, list) or any(kind not in REACTION_TYPES for kind in types):
+        raise CommunityError('response')
+    if isinstance(count, bool) or not re.match(r'^\d+$', str(count)):
+        raise CommunityError('response')
+    return {'reaction': reaction, 'reactionsCount': int(count),
+            'reactionsTypes': list(dict.fromkeys(types))}
+
 
 COMMENTS_QUERY = '''query PM4KComments($id: ID!, $first: PaginationInt!, $after: String) {
   activityCommentsV2(id: $id, first: $first, after: $after) {
@@ -162,6 +189,21 @@ class CommunityClient(object):
         data = self._request(COMMUNITY_URL, REVIEWS_QUERY,
                              {'id': ident, 'type': sort, 'first': PAGE_SIZE, 'after': cursor})
         return page(data.get('metadataReviewsV2'))
+
+    def reactions(self, activity_id):
+        data = self._request(COMMUNITY_URL, REACTIONS_QUERY, {'id': activity_id})
+        return reaction_state(data.get('activityByID'))
+
+    def react(self, activity_id, reaction):
+        # None removes the account's reaction. No automatic retry for mutations:
+        # a timeout may occur after Plex has already committed the change.
+        if not isinstance(activity_id, str) or not activity_id.strip():
+            raise ValueError('Missing activity ID')
+        if reaction is not None and reaction not in REACTION_TYPES:
+            raise ValueError('Unknown reaction')
+        data = self._request(COMMUNITY_URL, REACT_QUERY,
+                             {'input': {'activity': activity_id, 'type': reaction}})
+        return reaction_state(data.get('reactToActivity'))
 
     def comments(self, activity_id, cursor=None):
         data = self._request(COMMUNITY_URL, COMMENTS_QUERY,

@@ -333,3 +333,113 @@ class ReviewPresentationTest(KodiTestCase):
         ReviewsWindow.onClick(window, 305)
         window.render_page.assert_called_once_with(5)
         self.assertEqual([], window.history)
+
+
+class ReactionClientTest(KodiTestCase):
+    def setUp(self):
+        super(ReactionClientTest, self).setUp()
+        self.session = mock.Mock()
+        self.response = self.session.post.return_value
+        self.response.status_code = 200
+        self.state = {'reaction': 'LIKE', 'reactionsCount': '35', 'reactionsTypes': ['LIKE', 'LOVE']}
+        self.response.json.return_value = {'data': {'reactToActivity': self.state}}
+        self.client = community.CommunityClient(lambda: 'test-token', session=self.session)
+
+    def test_set_replace_and_remove_use_activity_id_and_nullable_type(self):
+        for kind in ('LIKE', 'LOVE', None):
+            state = dict(self.state, reaction=kind)
+            self.response.json.return_value = {'data': {'reactToActivity': state}}
+            result = self.client.react('review-id', kind)
+            self.assertEqual(kind, result['reaction'])
+            self.assertEqual(35, result['reactionsCount'])
+            sent = self.session.post.call_args.kwargs['json']
+            self.assertIn('mutation ', sent['query'])
+            self.assertEqual({'input': {'activity': 'review-id', 'type': kind}}, sent['variables'])
+
+    def test_unsupported_reactions_do_not_contact_plex(self):
+        for value in ('HEART', '', 123, {}):
+            with self.assertRaises(ValueError):
+                self.client.react('id', value)
+        with self.assertRaises(ValueError):
+            self.client.react('', 'LIKE')
+        self.session.post.assert_not_called()
+
+    def test_uncertain_write_never_retries(self):
+        self.session.post.side_effect = requests.Timeout()
+        with self.assertRaisesRegex(community.CommunityError, 'network'):
+            self.client.react('id', 'LOVE')
+        self.assertEqual(1, self.session.post.call_count)
+
+    def test_offline_profile_cannot_react(self):
+        self.client.offline_getter = lambda: True
+        with self.assertRaisesRegex(community.CommunityError, 'offline'):
+            self.client.react('id', 'LIKE')
+        self.session.post.assert_not_called()
+
+    def test_read_and_write_share_server_authoritative_state(self):
+        self.response.json.return_value = {'data': {'activityByID': self.state}}
+        self.assertEqual(35, self.client.reactions('id')['reactionsCount'])
+        for field, value in [('reaction', 'UNKNOWN'), ('reactionsCount', '-1'),
+                             ('reactionsCount', True), ('reactionsTypes', ['UNKNOWN'])]:
+            with self.assertRaises(community.CommunityError):
+                community.reaction_state(dict(self.state, **{field: value}))
+
+
+class ReactionWindowTest(KodiTestCase):
+    def test_failure_reconciles_without_optimistic_counts(self):
+        from lib.windows.reviews import ReviewWindow
+        original = {'id': 'review', 'reaction': 'LOVE', 'reactionsCount': 4, 'reactionsTypes': ['LOVE']}
+        window = mock.Mock(reply=False, reacting=False, reactionKnown=True, node=dict(original))
+        window.browser.run.return_value = None
+        ReviewWindow.react(window, 'LIKE')
+        self.assertEqual(original, window.node)
+        window.render_reactions.assert_not_called()
+        window.refresh_reactions.assert_called_once_with()
+        self.assertFalse(window.reacting)
+
+    def test_success_uses_returned_count_not_local_arithmetic(self):
+        from lib.windows.reviews import ReviewWindow
+        window = mock.Mock(reply=False, reacting=False, reactionKnown=True, node={'id': 'review'})
+        window.browser.run.return_value = {'reaction': 'LIKE', 'reactionsCount': 42, 'reactionsTypes': ['LIKE']}
+        ReviewWindow.react(window, 'LIKE')
+        self.assertEqual(42, window.node['reactionsCount'])
+        window.render_reactions.assert_called_once_with()
+
+    def test_unknown_state_reply_and_duplicate_click_do_not_write(self):
+        from lib.windows.reviews import ReviewWindow
+        for values in ({'reply': True}, {'reacting': True}, {'reactionKnown': False}):
+            base = dict(reply=False, reacting=False, reactionKnown=True)
+            base.update(values)
+            window = mock.Mock(**base)
+            ReviewWindow.react(window, 'LIKE')
+            window.browser.run.assert_not_called()
+
+    def test_selected_emoji_toggles_off_and_cancel_does_nothing(self):
+        from lib.windows.reviews import ReviewWindow, ReactionPicker
+        window = mock.Mock(reply=False, reacting=False, reactionKnown=True, node={'reaction': 'LOVE'})
+        with mock.patch.object(ReactionPicker, 'open') as picker:
+            picker.return_value.result = None
+            ReviewWindow.pick_reaction(window)
+            window.react.assert_not_called()
+            picker.return_value.result = ('LOVE',)
+            ReviewWindow.pick_reaction(window)
+            window.react.assert_called_once_with(None)
+
+    def test_card_totals_and_current_emoji_update_in_place(self):
+        from lib.windows.reviews import review_item, update_reaction_properties
+        node = activity(reaction='LOVE', reactionsCount='34', reactionsTypes=['LOVE', 'APPLAUD', 'LIKE'])
+        item = review_item(node)
+        self.assertEqual('34', item.getProperty('reaction.count'))
+        self.assertTrue(item.getProperty('reaction.mine').endswith('/love.png'))
+        node.update(reaction=None, reactionsCount='0', reactionsTypes=[])
+        update_reaction_properties(item)
+        self.assertEqual('', item.getProperty('reaction.mine'))
+        self.assertEqual('', item.getProperty('reaction.icon.0'))
+
+
+class ReactionPickerLifecycleTest(KodiTestCase):
+    def test_controlled_dialog_accepts_window_modal_show_argument(self):
+        from lib.windows.reviews import ReactionPicker
+        with mock.patch('lib.windows.kodigui.BaseDialog.show') as show:
+            ReactionPicker.show(mock.Mock(), aggressive=False)
+        show.assert_called_once_with(mock.ANY)

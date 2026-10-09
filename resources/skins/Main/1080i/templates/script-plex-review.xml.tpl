@@ -105,7 +105,7 @@
     <posx>710</posx>
     <posy>{{ vscale(354) }}</posy>
     <width>1040</width>
-    <height>{{ vscale(314) }}</height>
+    <height>270</height>
     <font>font10</font>
     <textcolor>DDFFFFFF</textcolor>
     <label>$INFO[Window.Property(review)]</label>
@@ -115,7 +115,7 @@
     <posx>1770</posx>
     <posy>{{ vscale(354) }}</posy>
     <width>8</width>
-    <height>{{ vscale(314) }}</height>
+    <height>270</height>
     <texturesliderbackground colordiffuse="33000000">script.plex/white-square.png</texturesliderbackground>
     <texturesliderbar colordiffuse="77FFFFFF">script.plex/white-square.png</texturesliderbar>
     <texturesliderbarfocus colordiffuse="FFFFFFFF">script.plex/white-square.png</texturesliderbarfocus>
@@ -123,9 +123,9 @@
     <textureslidernibfocus>-</textureslidernibfocus>
     <orientation>vertical</orientation>
     <showonepage>true</showonepage>
-    <ondown>410</ondown>
+    <ondown>310</ondown>
     <onleft>309</onleft>
-    <onright>308</onright>
+    <onright>311</onright>
 </control>
 <control type="label">
     <visible>String.IsEmpty(Window.Property(is.reply))</visible>
@@ -144,7 +144,7 @@
     <width>1140</width>
     <height>{{ vscale(222) }}</height>
     <orientation>vertical</orientation>
-    <onup>152</onup>
+    <onup>310</onup>
     <ondown>306</ondown>
     <onleft>307</onleft>
     <onright>308</onright>
@@ -329,5 +329,104 @@
     <ondown>410</ondown>
     <onup>152</onup>
     <visible>!String.IsEmpty(Window.Property(has.next))</visible>
+</control>
+
+<control type="group">
+    <visible>String.IsEmpty(Window.Property(is.reply))</visible>
+    <control type="button" id="310">
+        <posx>710</posx>
+        <posy>{{ vscale(642) }}</posy>
+        <width>190</width>
+        <height>{{ vscale(52) }}</height>
+        <font>font10</font>
+        <textcolor>FFFFFFFF</textcolor>
+        <focusedcolor>FF111111</focusedcolor>
+        <texturefocus colordiffuse="FFFFFFFF" border="8">script.plex/white-square-rounded.png</texturefocus>
+        <texturenofocus colordiffuse="55000000" border="8">script.plex/white-square-rounded.png</texturenofocus>
+        <label>$INFO[Window.Property(reaction.action)]</label>
+        <onleft>309</onleft>
+        <onright>311</onright>
+        <onup>152</onup>
+        <ondown>410</ondown>
+        <enable>!String.IsEmpty(Window.Property(reaction.known)) + String.IsEmpty(Window.Property(reaction.busy))</enable>
+        <align>left</align>
+        <textoffsetx>55</textoffsetx>
+    </control>
+    <control type="button" id="311">
+        <posx>920</posx>
+        <posy>{{ vscale(642) }}</posy>
+        <width>180</width>
+        <height>{{ vscale(52) }}</height>
+        <font>font10</font>
+        <textcolor>FFFFFFFF</textcolor>
+        <focusedcolor>FF111111</focusedcolor>
+        <texturefocus colordiffuse="FFFFFFFF" border="8">script.plex/white-square-rounded.png</texturefocus>
+        <texturenofocus colordiffuse="55000000" border="8">script.plex/white-square-rounded.png</texturenofocus>
+        <label>$ADDON[script.plexmod 35144]</label>
+        <onleft>310</onleft>
+        <onright>312</onright>
+        <onup>152</onup>
+        <ondown>410</ondown>
+        <enable>String.IsEmpty(Window.Property(reaction.busy))</enable>
+    </control>
+    <control type="button" id="312">
+        <posx>1500</posx>
+        <posy>{{ vscale(642) }}</posy>
+        <width>280</width>
+        <height>{{ vscale(52) }}</height>
+        <font>font10</font>
+        <textcolor>FFFFFFFF</textcolor>
+        <focusedcolor>FF111111</focusedcolor>
+        <texturefocus colordiffuse="FFFFFFFF" border="8">script.plex/white-square-rounded.png</texturefocus>
+        <texturenofocus colordiffuse="55000000" border="8">script.plex/white-square-rounded.png</texturenofocus>
+        <label>$ADDON[script.plexmod 35145]</label>
+        <onleft>311</onleft>
+        <onright>309</onright>
+        <onup>152</onup>
+        <ondown>410</ondown>
+        <enable>!String.IsEmpty(Window.Property(reaction.known)) + String.IsEmpty(Window.Property(reaction.busy))</enable>
+        <visible>!String.IsEmpty(Window.Property(reaction.mine))</visible>
+    </control>
+    <control type="image">
+        <posx>718</posx>
+        <posy>{{ vscale(650) }}</posy>
+        <width>36</width>
+        <height>{{ vscale(36) }}</height>
+        <aspectratio>keep</aspectratio>
+        <texture>$INFO[Window.Property(reaction.current.icon)]</texture>
+    </control>
+    <control type="image">
+        <posx>1120</posx>
+        <posy>{{ vscale(650) }}</posy>
+        <width>40</width>
+        <height>{{ vscale(40) }}</height>
+        <aspectratio>keep</aspectratio>
+        <texture>$INFO[Window.Property(reaction.icon.0)]</texture>
+    </control>
+    <control type="image">
+        <posx>1158</posx>
+        <posy>{{ vscale(650) }}</posy>
+        <width>40</width>
+        <height>{{ vscale(40) }}</height>
+        <aspectratio>keep</aspectratio>
+        <texture>$INFO[Window.Property(reaction.icon.1)]</texture>
+    </control>
+    <control type="image">
+        <posx>1196</posx>
+        <posy>{{ vscale(650) }}</posy>
+        <width>40</width>
+        <height>{{ vscale(40) }}</height>
+        <aspectratio>keep</aspectratio>
+        <texture>$INFO[Window.Property(reaction.icon.2)]</texture>
+    </control>
+    <control type="label">
+        <posx>1250</posx>
+        <posy>{{ vscale(647) }}</posy>
+        <width>220</width>
+        <height>{{ vscale(44) }}</height>
+        <font>font10</font>
+        <textcolor>DDFFFFFF</textcolor>
+        <label>$INFO[Window.Property(reaction.count)]</label>
+    </control>
 </control>
 {% endblock %}

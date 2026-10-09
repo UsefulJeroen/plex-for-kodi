@@ -6,7 +6,7 @@ import datetime
 import math
 from urllib.parse import urlsplit
 
-from lib import util
+from lib import util, community as api
 from lib.i18n import T
 from . import kodigui
 from .community import text, user_name, activity_preview
@@ -43,6 +43,32 @@ def star_texture(value):
     return 'script.plex/community-stars/{}.png'.format(int(math.floor(value + 0.5))) if rating_label(value) else ''
 
 
+REACTION_LABELS = {
+    'LIKE': (35138, 'Like'), 'DISLIKE': (35139, 'Dislike'),
+    'LOVE': (35140, 'Love'), 'LAUGH': (35141, 'Laugh'),
+    'APPLAUD': (35142, 'Applaud'), 'QUESTION': (35143, 'Question'),
+}
+
+
+def reaction_icon(kind):
+    return 'script.plex/reactions/{}.png'.format(kind.lower()) if kind in api.REACTION_TYPES else ''
+
+
+def update_reaction_properties(item):
+    node = item.dataSource or {}
+    if not isinstance(node, dict):
+        return
+    try:
+        state = api.reaction_state(node)
+    except api.CommunityError:
+        state = {'reaction': None, 'reactionsCount': 0, 'reactionsTypes': []}
+    item.setProperty('reaction.count', str(state['reactionsCount']) if state['reactionsCount'] else '')
+    item.setProperty('reaction.mine', reaction_icon(state['reaction']))
+    for index in range(3):
+        types = state['reactionsTypes']
+        item.setProperty('reaction.icon.' + str(index), reaction_icon(types[index]) if index < len(types) else '')
+
+
 def review_item(node):
     user = node.get('userV2') or node.get('user') or {}
     item = kodigui.ManagedListItem(user_name(user), date_label(node.get('date')),
@@ -50,6 +76,7 @@ def review_item(node):
     item.setProperty('text', activity_preview(node))
     item.setProperty('stars', rating_label(node.get('rating')))
     item.setProperty('star.texture', star_texture(node.get('rating')))
+    update_reaction_properties(item)
     item.setProperty('community', '1')
     item.setProperty('discussion', T(35115, 'Discussion') + ' ({})'.format(node.get('commentCount') or 0))
     return item
@@ -93,6 +120,10 @@ class ReviewsWindow(ReviewBase):
         self.cards = kodigui.ManagedControlList(self, 401, 3)
         self.title_info()
         self.load_page()
+
+    def onReInit(self):
+        for item in self.cards:
+            update_reaction_properties(item)
 
     def load_page(self, cursor=None):
         page = self.browser.run(self.browser.fetch, self.browser.client.reviews,
@@ -157,6 +188,8 @@ class ReviewWindow(ReviewBase):
         self.cursor = None
         self.current = None
         self.history = []
+        self.reactionKnown = False
+        self.reacting = False
 
     def onFirstInit(self):
         self.comments = kodigui.ManagedControlList(self, 410, 2)
@@ -173,8 +206,57 @@ class ReviewWindow(ReviewBase):
         if not self.getProperty('title'):
             self.setProperty('title', text((self.node.get('metadataItem') or {}).get('title')))
         if not self.reply:
+            self.refresh_reactions()
             self.load_comments()
         self.setFocusId(152)
+
+    def render_reactions(self):
+        state = api.reaction_state(self.node)
+        self.setBoolProperty('reaction.known', self.reactionKnown)
+        self.setBoolProperty('reaction.mine', bool(state['reaction']))
+        self.setProperty('reaction.count', str(state['reactionsCount']))
+        current = state['reaction']
+        self.setProperty('reaction.action', T(*REACTION_LABELS[current or 'LIKE']))
+        self.setProperty('reaction.current.icon', reaction_icon(current or 'LIKE'))
+        for index in range(3):
+            types = state['reactionsTypes']
+            self.setProperty('reaction.icon.' + str(index), reaction_icon(types[index]) if index < len(types) else '')
+
+    def refresh_reactions(self):
+        state = self.browser.run(self.browser.fetch, self.browser.client.reactions, self.node['id'])
+        self.reactionKnown = state is not None
+        self.setBoolProperty('reaction.known', self.reactionKnown)
+        if state is not None:
+            self.node.update(state)
+            self.render_reactions()
+        return self.reactionKnown
+
+    def react(self, reaction):
+        if self.reply or self.reacting or not self.reactionKnown:
+            return
+        self.reacting = True
+        self.setBoolProperty('reaction.busy', True)
+        try:
+            state = self.browser.run(self.browser.fetch, self.browser.client.react, self.node['id'], reaction)
+            if state is not None:
+                self.node.update(state)
+                self.render_reactions()
+            else:
+                # Reconcile uncertain outcomes instead of blindly retrying a write.
+                self.refresh_reactions()
+        finally:
+            self.reacting = False
+            self.setProperty('reaction.busy', '')
+
+    def pick_reaction(self):
+        if self.reply or self.reacting:
+            return
+        if not self.reactionKnown and not self.refresh_reactions():
+            return
+        picker = ReactionPicker.open(current=self.node.get('reaction'))
+        if picker.result is not None:
+            kind = picker.result[0]
+            self.react(None if kind == self.node.get('reaction') else kind)
 
     def load_comments(self, cursor=None):
         page = self.browser.run(self.browser.fetch, self.browser.client.comments, self.node['id'], cursor)
@@ -217,8 +299,50 @@ class ReviewWindow(ReviewBase):
         elif controlID == 307:
             self.doClose()
         elif controlID == 308 and not self.reply:
+            self.refresh_reactions()
             self.load_comments(self.cursor)
+        elif controlID == 310:
+            self.react(None if self.node.get('reaction') else 'LIKE')
+        elif controlID == 311:
+            self.pick_reaction()
+        elif controlID == 312:
+            self.react(None)
         elif controlID == 309:
             user = self.node.get('userV2') or self.node.get('user') or {}
             if user.get('username'):
                 self.browser.run(self.browser.profile, user['username'])
+
+
+class ReactionPicker(kodigui.ControlledDialog):
+    xmlFile = 'script-plex-reaction_picker.xml'
+    path = util.ADDON.getAddonInfo('path')
+    theme = 'Main'
+    res = '1080i'
+    width = 1920
+    height = 1080
+
+    def __init__(self, *args, **kwargs):
+        super(ReactionPicker, self).__init__(*args, **kwargs)
+        self.current = kwargs.get('current')
+        self.result = None
+
+    def show(self, aggressive=False):
+        # ControlledBase passes this argument for windows; native Kodi dialogs
+        # expose show() without it. Keep the adaptation local to this picker.
+        kodigui.BaseDialog.show(self)
+
+    def onFirstInit(self):
+        for index, kind in enumerate(api.REACTION_TYPES):
+            self.setProperty('label.' + kind, T(*REACTION_LABELS[kind]))
+            self.setBoolProperty('selected.' + kind, self.current == kind)
+        self.setBoolProperty('has.reaction', bool(self.current))
+        self.setFocusId(500 + api.REACTION_TYPES.index(self.current) if self.current in api.REACTION_TYPES else 500)
+
+    def onClick(self, controlID):
+        if 500 <= controlID < 506:
+            self.result = (api.REACTION_TYPES[controlID - 500],)
+        elif controlID == 506 and self.current:
+            self.result = (None,)
+        elif controlID != 507:
+            return
+        self.doClose()

@@ -296,7 +296,7 @@ class PrePlayWindow(kodigui.ControlledWindow, windowutils.UtilMixin, RatingsMixi
             self.goHome()
         elif controlID == self.REVIEWS_LIST_ID:
             from . import community
-            from .reviews import ReviewWindow
+            from .reviews import ReviewWindow, update_reaction_properties
             selected = self.reviewsListControl.getSelectedItem()
             if selected and selected.getProperty('community'):
                 if selected.getProperty('browse'):
@@ -306,6 +306,7 @@ class PrePlayWindow(kodigui.ControlledWindow, windowutils.UtilMixin, RatingsMixi
                     try:
                         if browser.reveal(selected.dataSource):
                             browser.run(ReviewWindow.open, browser=browser, node=selected.dataSource, video=self.video)
+                            update_reaction_properties(selected)
                     finally:
                         browser.client.close()
         elif controlID == self.EXTRA_LIST_ID:
