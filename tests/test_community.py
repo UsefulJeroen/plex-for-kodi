@@ -272,3 +272,14 @@ class DiscoverReviewMenuTest(KodiTestCase):
         with mock.patch.object(ui, 'show_reviews') as show:
             PrePlayWindowWL.optionsButtonClicked(window)
         show.assert_not_called()
+
+    def test_discover_does_not_query_server_library_collections(self):
+        from lib.windows.preplay import PrePlayWindowWL
+        window = mock.Mock(collectionListControls=[mock.Mock() for _ in range(3)],
+                           collectionPaginators=[mock.Mock() for _ in range(3)])
+        with mock.patch('lib.windows.preplay.plexobjects.listItems') as query:
+            PrePlayWindowWL.fillCollections(window)
+        query.assert_not_called()
+        self.assertEqual([None, None, None], window.collectionPaginators)
+        for control in window.collectionListControls:
+            control.reset.assert_called_once_with()

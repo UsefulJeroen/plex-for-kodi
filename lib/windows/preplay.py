@@ -971,3 +971,10 @@ class PrePlayWindowWL(PrePlayWindow):
         from . import community
         if community.title_option(self.video):
             community.show_reviews(self.video, parent=self)
+
+    def fillCollections(self):
+        # Discover metadata has no local library section or server collections.
+        for i, control in enumerate(self.collectionListControls):
+            control.reset()
+            self.setProperty('collection.header.{0}'.format(i), '')
+            self.collectionPaginators[i] = None

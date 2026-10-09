@@ -115,8 +115,10 @@ the calling title/results/menu. No social or watchlist data was changed.
 
 The GUI checks found and fixed missing access to reviews on Discover movie
 pages. Their More button now opens only community reviews, avoiding server
-management actions on catalog metadata. Theme version 99 rebuilds the skin
-for existing installations. The full suite passed: 745 tests + 787 subtests.
+management actions on catalog metadata. Discover movie pages also skip local
+library-collection requests, which returned an unnecessary 404 from Plex.
+Theme version 99 rebuilds the skin
+for existing installations. The full suite passed: 746 tests + 787 subtests.
 
 The Ugoos was unreachable at its prior IP during development. Installation,
 remote-control navigation and playback on the device remain to be validated.
