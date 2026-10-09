@@ -4805,6 +4805,9 @@ class HomeWindow(kodigui.BaseWindow, util.CronReceiver, CommonMixin, SpoilersMix
             if not len(plexapp.ACCOUNT.homeUsers) and not util.addonSettings.cacheHomeUsers:
                 plexapp.ACCOUNT.updateHomeUsers(refreshSubscription=True)
 
+            if not plexapp.util.LOCAL_MODE and not plexapp.ACCOUNT.isManaged:
+                items.append(kodigui.ManagedListItem(T(35101, 'Plex community'), data_source='community'))
+
             if len(plexapp.ACCOUNT.homeUsers) > 1:
                 items.append(kodigui.ManagedListItem(T(32342, 'Switch User'), data_source='switch'))
             else:
@@ -4868,6 +4871,10 @@ class HomeWindow(kodigui.BaseWindow, util.CronReceiver, CommonMixin, SpoilersMix
         if option == 'settings':
             from . import settings
             settings.openWindow()
+        elif option == 'community':
+            from . import community
+            self.setBoolProperty('show.options', False)
+            community.show_home(self)
         elif option == 'update':
             self.setBoolProperty('show.options', False)
             self.showBusy()

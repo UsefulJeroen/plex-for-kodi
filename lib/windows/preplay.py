@@ -376,6 +376,11 @@ class PrePlayWindow(kodigui.ControlledWindow, windowutils.UtilMixin, RatingsMixi
     def optionsButtonClicked(self):
         options = []
 
+        from . import community
+        review_option = community.title_option(self.video)
+        if review_option:
+            options.append(review_option)
+
         inProgress = self.video.viewOffset.asInt()
         if not self.video.isWatched or inProgress:
             options.append({'key': 'mark_watched', 'display': T(32319, 'Mark Played')})
@@ -414,7 +419,9 @@ class PrePlayWindow(kodigui.ControlledWindow, windowutils.UtilMixin, RatingsMixi
         if not choice:
             return
 
-        if choice['key'] == 'play_next':
+        if choice['key'] == 'community_reviews':
+            community.show_reviews(self.video, parent=self)
+        elif choice['key'] == 'play_next':
             xbmc.executebuiltin('PlayerControl(Next)')
         elif choice['key'] == 'mark_watched':
             self.toggleWatched(self.video, state=True, **VIDEO_RELOAD_KW)

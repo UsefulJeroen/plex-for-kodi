@@ -1,5 +1,16 @@
 # PM4K / PlexMod for Kodi
 
+## UsefulJeroen community preview
+
+This fork adds Plex user reviews and comment discussions, friends and profiles,
+and Discover search for movies and shows outside your server. Open **Plex
+community** from the home screen's account menu, or **Plex user reviews** from
+a title's options menu. See [usage and development notes](docs/plex-community.md).
+
+The preview uses Plex's online community APIs and your existing Plex login.
+It keeps PM4K's Kodi playback and watchlist integration. Review and discussion
+browsing is read-only, as in official Plex TV apps.
+
 [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/Z8Z8X6P9T)
 
 This is a modification of the official open-source Plex client for Kodi "plex-for-kodi" (Plex4Kodi)  semi-maintained by me (pannal).

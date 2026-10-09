@@ -1176,6 +1176,12 @@ class EpisodesWindow(kodigui.ControlledWindow, windowutils.UtilMixin, SeasonsMix
 
         mli = self.episodeListControl.getSelectedItem()
 
+        from . import community
+        review_item = mli.dataSource if mli and not mli.getProperty('is.boundary') else self.season or self.show_
+        review_option = community.title_option(review_item) if review_item else None
+        if review_option:
+            options.append(review_option)
+
         if mli and not mli.getProperty("is.boundary"):
             inProgress = mli.dataSource.viewOffset.asInt()
             if inProgress and util.getSetting('assume_resume'):
@@ -1240,7 +1246,9 @@ class EpisodesWindow(kodigui.ControlledWindow, windowutils.UtilMixin, SeasonsMix
         if not choice:
             return
 
-        if choice['key'] == 'play_next':
+        if choice['key'] == 'community_reviews':
+            community.show_reviews(review_item, parent=self)
+        elif choice['key'] == 'play_next':
             xbmc.executebuiltin('PlayerControl(Next)')
         elif choice['key'] == 'mark_watched':
             self.toggleWatched(mli, state=True)

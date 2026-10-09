@@ -3356,3 +3356,123 @@ msgstr ""
 msgctxt "#35049"
 msgid "Local mode reaches your server over plain HTTP, so \"Allow Insecure Connections\" has been set to \"Always\".\n\nYour server needs the matching setting: in Plex under Settings > Network, \"Secure connections\" has to be \"Preferred\" - with \"Required\" the server refuses these connections."
 msgstr ""
+
+msgctxt "#35100"
+msgid "Plex user reviews"
+msgstr ""
+
+msgctxt "#35101"
+msgid "Plex community"
+msgstr ""
+
+msgctxt "#35102"
+msgid "Discover movies and shows"
+msgstr ""
+
+msgctxt "#35103"
+msgid "Friends"
+msgstr ""
+
+msgctxt "#35104"
+msgid "Friends activity"
+msgstr ""
+
+msgctxt "#35105"
+msgid "Recent reviews"
+msgstr ""
+
+msgctxt "#35106"
+msgid "Top reviews"
+msgstr ""
+
+msgctxt "#35107"
+msgid "Popular reviews"
+msgstr ""
+
+msgctxt "#35108"
+msgid "Friends reviews"
+msgstr ""
+
+msgctxt "#35109"
+msgid "May contain spoilers"
+msgstr ""
+
+msgctxt "#35110"
+msgid "Next page"
+msgstr ""
+
+msgctxt "#35111"
+msgid "Previous page"
+msgstr ""
+
+msgctxt "#35112"
+msgid "Nothing to show here yet, or this content is private."
+msgstr ""
+
+msgctxt "#35113"
+msgid "Show this review and its discussion?"
+msgstr ""
+
+msgctxt "#35114"
+msgid "Read review"
+msgstr ""
+
+msgctxt "#35115"
+msgid "Discussion"
+msgstr ""
+
+msgctxt "#35116"
+msgid "View profile"
+msgstr ""
+
+msgctxt "#35117"
+msgid "Plex community requires an online, full Plex account."
+msgstr ""
+
+msgctxt "#35118"
+msgid "Plex did not accept this login. Check your Plex account sign-in."
+msgstr ""
+
+msgctxt "#35119"
+msgid "Could not connect to Plex. Please try again."
+msgstr ""
+
+msgctxt "#35120"
+msgid "Plex is busy. Please try again later."
+msgstr ""
+
+msgctxt "#35121"
+msgid "This title needs a modern Plex Movie or Plex Series match."
+msgstr ""
+
+msgctxt "#35122"
+msgid "This profile or activity is unavailable or private."
+msgstr ""
+
+msgctxt "#35123"
+msgid "Plex could not load this page. Please try again later."
+msgstr ""
+
+msgctxt "#35124"
+msgid "Plex user"
+msgstr ""
+
+msgctxt "#35125"
+msgid "Rating without a written review"
+msgstr ""
+
+msgctxt "#35126"
+msgid "View title"
+msgstr ""
+
+msgctxt "#35127"
+msgid "About"
+msgstr ""
+
+msgctxt "#35128"
+msgid "Search all Plex movies and shows"
+msgstr ""
+
+msgctxt "#35129"
+msgid "No matching movies or shows found."
+msgstr ""
