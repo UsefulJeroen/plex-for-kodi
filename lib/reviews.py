@@ -5,31 +5,29 @@ from __future__ import absolute_import
 import re
 
 import requests
+from plexnet import plexapp, util
 
 COMMUNITY_URL = 'https://community.plex.tv/api'
 PAGE_SIZE = 24
 
-USER_FIELDS = 'id username displayName avatar isBlocked isMuted isHidden'
-ACTIVITY_FIELDS = '''
-  __typename
-  ... on Activity {
-    id date commentCount isMuted reaction reactionsCount reactionsTypes
-    userV2 { %s }
-    metadataItem { id title type year }
-  }
-  ... on ActivityReview { message reviewRating: rating hasSpoilers }
-  ... on ActivityWatchReview { message reviewRating: rating hasSpoilers }
-  ... on ActivityRating { rating }
-  ... on ActivityWatchRating { rating }
-''' % USER_FIELDS
+USER_FIELDS = 'username displayName avatar isBlocked isMuted isHidden'
 PAGE_FIELDS = 'pageInfo { endCursor hasNextPage }'
 
 REVIEWS_QUERY = '''query PM4KReviews($id: ID!, $type: ReviewsListType!,
     $first: PaginationInt!, $after: String) {
   metadataReviewsV2(metadata: {id: $id}, type: $type, first: $first, after: $after) {
-    nodes { %s } %s
+    nodes {
+      ... on Activity {
+        id date commentCount isMuted reaction reactionsCount reactionsTypes
+        userV2 { %s }
+      }
+      ... on ActivityReview { message reviewRating: rating hasSpoilers }
+      ... on ActivityWatchReview { message reviewRating: rating hasSpoilers }
+      ... on ActivityRating { rating }
+      ... on ActivityWatchRating { rating }
+    } %s
   }
-}''' % (ACTIVITY_FIELDS, PAGE_FIELDS)
+}''' % (USER_FIELDS, PAGE_FIELDS)
 
 REACTION_TYPES = ('LIKE', 'DISLIKE', 'LOVE', 'LAUGH', 'APPLAUD', 'QUESTION')
 REACTIONS_QUERY = """query PM4KReviewReactions($id: ID!) {
@@ -74,15 +72,6 @@ def metadata_id(guid):
     return match.group(1) if match else None
 
 
-def visible_user(user):
-    return isinstance(user, dict) and bool(user) and not any(user.get(key) for key in ('isBlocked', 'isMuted', 'isHidden'))
-
-
-def visible_activity(node):
-    return not node.get('isMuted') and visible_user(node.get('userV2') or node.get('user')) and \
-        node.get('status') not in ('DELETED', 'REMOVED', 'REJECTED')
-
-
 def page(connection):
     if not isinstance(connection, dict) or not isinstance(connection.get('nodes'), list):
         raise ReviewsError('response')
@@ -94,31 +83,34 @@ def page(connection):
         raise ReviewsError('response')
     nodes = []
     for node in connection['nodes']:
-        if isinstance(node, dict) and visible_activity(node):
-            node = dict(node)
-            if 'reviewRating' in node:
-                node['rating'] = node.pop('reviewRating')
-            nodes.append(node)
+        if not isinstance(node, dict):
+            continue
+        user = node.get('userV2') or node.get('user')
+        if (not isinstance(user, dict) or not user or
+                any(user.get(key) for key in ('isBlocked', 'isMuted', 'isHidden')) or
+                node.get('isMuted') or node.get('status') in ('DELETED', 'REMOVED', 'REJECTED')):
+            continue
+        node = dict(node)
+        if 'reviewRating' in node:
+            node['rating'] = node.pop('reviewRating')
+        nodes.append(node)
     return {'nodes': nodes, 'cursor': cursor}
 
 
 class ReviewsClient(object):
-    def __init__(self, token_getter, headers_getter=None, offline_getter=None, session=None):
-        self.token_getter = token_getter
-        self.headers_getter = headers_getter or (lambda: {})
-        self.offline_getter = offline_getter or (lambda: False)
-        self.session = session or requests.Session()
+    def __init__(self):
+        self.session = requests.Session()
 
     def close(self):
         self.session.close()
 
     def _request(self, query, variables):
-        if self.offline_getter():
+        if util.LOCAL_MODE or plexapp.ACCOUNT.isManaged:
             raise ReviewsError('offline')
-        token = self.token_getter()
+        token = plexapp.ACCOUNT.authToken
         if not token:
             raise ReviewsError('signin')
-        headers = dict(self.headers_getter())
+        headers = dict(util.getPlexHeaders())
         headers.update({'X-Plex-Token': token, 'Accept': 'application/json'})
         try:
             response = self.session.post(
@@ -173,10 +165,3 @@ class ReviewsClient(object):
         data = self._request(COMMENTS_QUERY,
                              {'id': activity_id, 'first': PAGE_SIZE, 'after': cursor})
         return page(data.get('activityCommentsV2'))
-
-
-def client_for_account():
-    from plexnet import plexapp, util
-    return ReviewsClient(lambda: plexapp.ACCOUNT.authToken,
-                         util.getPlexHeaders,
-                         lambda: util.LOCAL_MODE or plexapp.ACCOUNT.isManaged)

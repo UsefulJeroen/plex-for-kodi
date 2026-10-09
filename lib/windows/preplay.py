@@ -958,7 +958,7 @@ class PrePlayWindow(kodigui.ControlledWindow, windowutils.UtilMixin, RatingsMixi
             return False
         items = []
         if reviews.title_option(video):
-            client = reviews.api.client_for_account()
+            client = reviews.api.ReviewsClient()
             try:
                 page = client.reviews(guid, 'TOP')
                 items.extend(reviews.review_item(node) for node in page['nodes'][:6])

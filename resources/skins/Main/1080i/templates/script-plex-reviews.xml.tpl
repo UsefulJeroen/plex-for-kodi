@@ -24,8 +24,9 @@
     <align>left</align>
     <label>$INFO[Window.Property(title)]</label>
 </control>
-<control type="button" id="301">
-    <posx>60</posx>
+{% for i, order in [(0, "TOP"), (1, "RECENT"), (2, "HOT"), (3, "FRIENDS")] %}
+<control type="button" id="{{ 301 + i }}">
+    <posx>{{ 60 + i * 200 }}</posx>
     <posy>{{ vscale(212) }}</posy>
     <width>180</width>
     <height>{{ vscale(52) }}</height>
@@ -34,60 +35,13 @@
     <focusedcolor>FF111111</focusedcolor>
     <texturefocus colordiffuse="FFFFFFFF" border="8">script.plex/white-square-rounded.png</texturefocus>
     <texturenofocus colordiffuse="55000000" border="8">script.plex/white-square-rounded.png</texturenofocus>
-    <label>$INFO[Window.Property(sort.TOP)]</label>
-    <onleft>307</onleft>
-    <onright>302</onright>
+    <label>$INFO[Window.Property(sort.{{ order }})]</label>
+    <onleft>{% if i == 0 %}307{% else %}{{ 300 + i }}{% endif %}</onleft>
+    <onright>{{ 302 + i }}</onright>
     <ondown>401</ondown>
     <onup>152</onup>
 </control>
-<control type="button" id="302">
-    <posx>260</posx>
-    <posy>{{ vscale(212) }}</posy>
-    <width>180</width>
-    <height>{{ vscale(52) }}</height>
-    <font>font10</font>
-    <textcolor>DDFFFFFF</textcolor>
-    <focusedcolor>FF111111</focusedcolor>
-    <texturefocus colordiffuse="FFFFFFFF" border="8">script.plex/white-square-rounded.png</texturefocus>
-    <texturenofocus colordiffuse="55000000" border="8">script.plex/white-square-rounded.png</texturenofocus>
-    <label>$INFO[Window.Property(sort.RECENT)]</label>
-    <onleft>301</onleft>
-    <onright>303</onright>
-    <ondown>401</ondown>
-    <onup>152</onup>
-</control>
-<control type="button" id="303">
-    <posx>460</posx>
-    <posy>{{ vscale(212) }}</posy>
-    <width>180</width>
-    <height>{{ vscale(52) }}</height>
-    <font>font10</font>
-    <textcolor>DDFFFFFF</textcolor>
-    <focusedcolor>FF111111</focusedcolor>
-    <texturefocus colordiffuse="FFFFFFFF" border="8">script.plex/white-square-rounded.png</texturefocus>
-    <texturenofocus colordiffuse="55000000" border="8">script.plex/white-square-rounded.png</texturenofocus>
-    <label>$INFO[Window.Property(sort.HOT)]</label>
-    <onleft>302</onleft>
-    <onright>304</onright>
-    <ondown>401</ondown>
-    <onup>152</onup>
-</control>
-<control type="button" id="304">
-    <posx>660</posx>
-    <posy>{{ vscale(212) }}</posy>
-    <width>180</width>
-    <height>{{ vscale(52) }}</height>
-    <font>font10</font>
-    <textcolor>DDFFFFFF</textcolor>
-    <focusedcolor>FF111111</focusedcolor>
-    <texturefocus colordiffuse="FFFFFFFF" border="8">script.plex/white-square-rounded.png</texturefocus>
-    <texturenofocus colordiffuse="55000000" border="8">script.plex/white-square-rounded.png</texturenofocus>
-    <label>$INFO[Window.Property(sort.FRIENDS)]</label>
-    <onleft>303</onleft>
-    <onright>305</onright>
-    <ondown>401</ondown>
-    <onup>152</onup>
-</control>
+{% endfor %}
 <control type="button" id="305">
     <posx>1180</posx>
     <posy>{{ vscale(212) }}</posy>

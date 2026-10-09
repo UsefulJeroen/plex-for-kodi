@@ -142,7 +142,8 @@
     <onleft>307</onleft>
     <onright>308</onright>
     <scrolltime>150</scrolltime>
-    <itemlayout width="1140" height="{{ vscale(180) }}">
+    {% for layout in ["itemlayout", "focusedlayout"] %}
+    <{{ layout }} width="1140" height="{{ vscale(180) }}">
         <control type="image">
             <posx>0</posx>
             <posy>{{ vscale(0) }}</posy>
@@ -188,53 +189,7 @@
             <textcolor>DDFFFFFF</textcolor>
             <label>$INFO[ListItem.Property(text)]</label>
         </control>
-    </itemlayout>
-    <focusedlayout width="1140" height="{{ vscale(180) }}">
-        <control type="image">
-            <posx>0</posx>
-            <posy>{{ vscale(0) }}</posy>
-            <width>1140</width>
-            <height>{{ vscale(168) }}</height>
-            <texture border="12">script.plex/white-square-rounded.png</texture>
-            <colordiffuse>B0181D24</colordiffuse>
-        </control>
-        <control type="image">
-            <posx>24</posx>
-            <posy>{{ vscale(18) }}</posy>
-            <width>48</width>
-            <height>{{ vscale(48) }}</height>
-            <texture background="true" diffuse="script.plex/masks/role.png">$INFO[ListItem.Thumb]</texture>
-            <colordiffuse>FFFFFFFF</colordiffuse>
-        </control>
-        <control type="label">
-            <posx>88</posx>
-            <posy>{{ vscale(14) }}</posy>
-            <width>1000</width>
-            <height>{{ vscale(32) }}</height>
-            <font>font10</font>
-            <textcolor>DDFFFFFF</textcolor>
-            <align>left</align>
-            <label>$INFO[ListItem.Label]</label>
-        </control>
-        <control type="label">
-            <posx>88</posx>
-            <posy>{{ vscale(46) }}</posy>
-            <width>1000</width>
-            <height>{{ vscale(30) }}</height>
-            <font>font10</font>
-            <textcolor>99FFFFFF</textcolor>
-            <align>left</align>
-            <label>$INFO[ListItem.Label2]</label>
-        </control>
-        <control type="textbox">
-            <posx>25</posx>
-            <posy>{{ vscale(87) }}</posy>
-            <width>1080</width>
-            <height>{{ vscale(67) }}</height>
-            <font>font10</font>
-            <textcolor>DDFFFFFF</textcolor>
-            <label>$INFO[ListItem.Property(text)]</label>
-        </control>
+        {% if layout == "focusedlayout" %}
         <control type="image">
             <visible>Control.HasFocus(410)</visible>
             <posx>0</posx>
@@ -244,7 +199,9 @@
             <texture border="12">script.plex/white-outline-rounded.png</texture>
             <colordiffuse>FFFFFFFF</colordiffuse>
         </control>
-    </focusedlayout>
+        {% endif %}
+    </{{ layout }}>
+    {% endfor %}
 </control>
 <control type="label">
     <posx>700</posx>

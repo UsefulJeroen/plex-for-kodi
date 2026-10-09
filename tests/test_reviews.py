@@ -16,8 +16,7 @@ USER = {'id': 'user-1', 'username': 'example', 'displayName': 'Example',
 
 def activity(**kwargs):
     value = {'id': 'review-1', 'userV2': dict(USER), 'message': 'A thoughtful review',
-             'hasSpoilers': False, 'commentCount': 4, 'reviewRating': 8,
-             'metadataItem': {'id': api.metadata_id(GUID), 'type': 'movie', 'title': 'A movie'}}
+             'hasSpoilers': False, 'commentCount': 4, 'reviewRating': 8}
     value.update(kwargs)
     return value
 
@@ -36,9 +35,15 @@ class ClientTest(KodiTestCase):
         self.response.json.return_value = {'data': {'metadataReviewsV2': connection()}}
         self.token = 'not-a-real-token'
         self.offline = False
-        self.client = api.ReviewsClient(lambda: self.token,
-                                       lambda: {'X-Plex-Product': 'PM4K'},
-                                       lambda: self.offline, self.session)
+        self.account = mock.Mock(authToken=self.token, isManaged=False)
+        self.account_patch = mock.patch.object(api.plexapp, 'ACCOUNT', self.account)
+        self.mode_patch = mock.patch.object(api.util, 'LOCAL_MODE', False)
+        self.account_patch.start()
+        self.mode_patch.start()
+        self.addCleanup(self.account_patch.stop)
+        self.addCleanup(self.mode_patch.stop)
+        with mock.patch.object(api.requests, 'Session', return_value=self.session):
+            self.client = api.ReviewsClient()
 
     def test_uses_account_header_and_current_user_on_every_request(self):
         self.client.reviews(GUID)
@@ -49,13 +54,16 @@ class ClientTest(KodiTestCase):
         self.assertEqual('5d7769cefb0d55001f530acd', kwargs['json']['variables']['id'])
         self.assertEqual((5, 15), kwargs['timeout'])
         self.assertFalse(kwargs['allow_redirects'])
-        self.token = 'different-account'
+        self.token = self.account.authToken = 'different-account'
         self.client.reviews(GUID)
         self.assertEqual(self.token, self.session.post.call_args.kwargs['headers']['X-Plex-Token'])
 
     def test_local_mode_and_missing_login_never_contact_plex(self):
-        for offline, token, code in [(True, self.token, 'offline'), (False, None, 'signin')]:
-            self.offline, self.token = offline, token
+        for offline, managed, token, code in [(True, False, self.token, 'offline'),
+                                               (False, True, self.token, 'offline'),
+                                               (False, False, None, 'signin')]:
+            api.util.LOCAL_MODE = offline
+            self.account.isManaged, self.account.authToken = managed, token
             with self.assertRaisesRegex(api.ReviewsError, code):
                 self.client.reviews(GUID)
         self.session.post.assert_not_called()
@@ -126,16 +134,17 @@ class BrowserTest(KodiTestCase):
     def setUp(self):
         super(BrowserTest, self).setUp()
         self.client = mock.Mock()
-        self.browser = ui.ReviewsBrowser(client=self.client)
+        with mock.patch.object(api, 'ReviewsClient', return_value=self.client):
+            self.browser = ui.ReviewsBrowser()
         self.browser.fetch = lambda method, *args, **kwargs: method(*args, **kwargs)
 
     def test_spoiler_text_is_hidden_in_lists(self):
         node = activity(hasSpoilers=True, message='The ending is revealed')
-        self.assertNotIn('ending', ui.activity_preview(node))
+        self.assertNotIn('ending', ui.review_item(node).getProperty('text'))
 
     def test_declining_spoilers_never_displays_text_or_requests_discussion(self):
         ENV.dialog_answers.append(False)
-        self.browser.open_review(activity(hasSpoilers=True))
+        self.browser.open_review(activity(hasSpoilers=True), mock.Mock())
         self.assertEqual(['yesno'], [call[0] for call in ENV.dialog_calls])
         self.client.comments.assert_not_called()
 
@@ -143,11 +152,12 @@ class BrowserTest(KodiTestCase):
         node = activity(hasSpoilers=True)
         ENV.dialog_answers.append(True)
         with mock.patch('lib.windows.reviews.ReviewWindow.open') as reader:
-            self.browser.open_review(node)
-            self.browser.open_review(node)
+            self.browser.open_review(node, mock.Mock())
+            self.browser.open_review(node, mock.Mock())
         self.assertEqual(2, reader.call_count)
         self.assertEqual(1, len([call for call in ENV.dialog_calls if call[0] == 'yesno']))
-        self.assertTrue(ui.ReviewsBrowser(client=self.client).revealed == set())
+        with mock.patch.object(api, 'ReviewsClient', return_value=self.client):
+            self.assertEqual(set(), ui.ReviewsBrowser().revealed)
 
     def test_untrusted_kodi_markup_is_displayed_as_text(self):
         rendered = ui.text('[B]Review[/B] [COLOR red]spoiler[/COLOR]')
@@ -166,7 +176,7 @@ class BrowserTest(KodiTestCase):
         self.assertEqual(['ok'], [call[0] for call in ENV.dialog_calls])
 
     def test_client_is_closed_when_review_window_fails(self):
-        with mock.patch.object(ui.api, 'client_for_account', return_value=self.client), \
+        with mock.patch.object(ui.api, 'ReviewsClient', return_value=self.client), \
                 mock.patch.object(ui.ReviewsWindow, 'open', side_effect=RuntimeError('window')):
             with self.assertRaises(RuntimeError):
                 ui.show_reviews(mock.Mock(guid=GUID))
@@ -186,7 +196,7 @@ class InlineReviewTest(KodiTestCase):
 
     def fill(self):
         from lib.windows.preplay import PrePlayWindow
-        with mock.patch.object(ui.api, 'client_for_account', return_value=self.client), \
+        with mock.patch.object(ui.api, 'ReviewsClient', return_value=self.client), \
                 mock.patch.object(ui.util, 'getSetting', return_value=['watched', 'unwatched']):
             return PrePlayWindow.fillReviews(self.window)
 
@@ -290,7 +300,14 @@ class ReactionClientTest(KodiTestCase):
         self.response.status_code = 200
         self.state = {'reaction': 'LIKE', 'reactionsCount': '35', 'reactionsTypes': ['LIKE', 'LOVE']}
         self.response.json.return_value = {'data': {'reactToActivity': self.state}}
-        self.client = api.ReviewsClient(lambda: 'test-token', session=self.session)
+        account = mock.patch.object(api.plexapp, 'ACCOUNT', mock.Mock(authToken='test-token', isManaged=False))
+        mode = mock.patch.object(api.util, 'LOCAL_MODE', False)
+        account.start()
+        mode.start()
+        self.addCleanup(account.stop)
+        self.addCleanup(mode.stop)
+        with mock.patch.object(api.requests, 'Session', return_value=self.session):
+            self.client = api.ReviewsClient()
 
     def test_set_replace_and_remove_use_activity_id_and_nullable_type(self):
         for kind in ('LIKE', 'LOVE', None):
@@ -318,7 +335,7 @@ class ReactionClientTest(KodiTestCase):
         self.assertEqual(1, self.session.post.call_count)
 
     def test_offline_profile_cannot_react(self):
-        self.client.offline_getter = lambda: True
+        api.util.LOCAL_MODE = True
         with self.assertRaisesRegex(api.ReviewsError, 'offline'):
             self.client.react('id', 'LIKE')
         self.session.post.assert_not_called()

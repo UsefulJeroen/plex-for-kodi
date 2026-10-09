@@ -3,7 +3,6 @@
 from __future__ import absolute_import
 
 import datetime
-import math
 from urllib.parse import urlsplit
 
 from kodi_six import xbmcgui
@@ -22,13 +21,6 @@ def user_name(user):
     return text(user.get('displayName') or user.get('username') or T(35124, 'Plex user'))
 
 
-def activity_preview(node):
-    if node.get('hasSpoilers'):
-        return T(35109, 'May contain spoilers')
-    message = text(node.get('message')).replace('\n', ' ')
-    return message[:180] or T(35125, 'Rating without a written review')
-
-
 def title_option(item):
     if api.metadata_id(getattr(item, 'guid', None)):
         return {'key': 'plex_reviews', 'display': T(35100, 'Plex user reviews')}
@@ -44,9 +36,9 @@ def show_reviews(item, parent=None):
 
 class ReviewsBrowser(object):
 
-    def __init__(self, parent=None, client=None):
+    def __init__(self, parent=None):
         self.parent = parent
-        self.client = client or api.client_for_account()
+        self.client = api.ReviewsClient()
         self.revealed = set()
 
     def fetch(self, method, *args, **kwargs):
@@ -73,7 +65,7 @@ class ReviewsBrowser(object):
         self.revealed.add(node.get('id'))
         return True
 
-    def open_review(self, node, video=None):
+    def open_review(self, node, video):
         if not self.reveal(node):
             return
         ReviewWindow.open(browser=self, node=node, video=video)
@@ -99,8 +91,8 @@ def avatar_url(value):
 
 
 def star_texture(value):
-    if isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value) and 0 <= value <= 10:
-        return 'script.plex/review-stars/{}.png'.format(int(math.floor(value + 0.5)))
+    if isinstance(value, (int, float)) and not isinstance(value, bool) and 0 <= value <= 10:
+        return 'script.plex/review-stars/{}.png'.format(int(value + 0.5))
     return ''
 
 
@@ -116,11 +108,8 @@ def reaction_icon(kind):
 
 
 def update_reaction_properties(item):
-    node = item.dataSource or {}
-    if not isinstance(node, dict):
-        return
     try:
-        state = api.reaction_state(node)
+        state = api.reaction_state(item.dataSource)
     except api.ReviewsError:
         state = {'reaction': None, 'reactionsCount': 0, 'reactionsTypes': []}
     item.setProperty('reaction.count', str(state['reactionsCount']) if state['reactionsCount'] else '')
@@ -134,7 +123,9 @@ def review_item(node):
     user = node.get('userV2') or node.get('user') or {}
     item = kodigui.ManagedListItem(user_name(user), date_label(node.get('date')),
                                   thumbnailImage=avatar_url(user.get('avatar')), data_source=node)
-    item.setProperty('text', activity_preview(node))
+    message = text(node.get('message')).replace('\n', ' ')[:180]
+    item.setProperty('text', T(35109, 'May contain spoilers') if node.get('hasSpoilers') else
+                     message or T(35125, 'Rating without a written review'))
     item.setProperty('star.texture', star_texture(node.get('rating')))
     update_reaction_properties(item)
     item.setProperty('user.review', '1')
@@ -153,15 +144,14 @@ class ReviewBase(kodigui.ControlledWindow):
     def __init__(self, *args, **kwargs):
         super(ReviewBase, self).__init__(*args, **kwargs)
         self.browser = kwargs['browser']
-        self.video = kwargs.get('video')
+        self.video = kwargs['video']
 
     def title_info(self):
-        video = self.video or getattr(self.browser.parent, 'video', None)
-        if video is not None:
-            self.setProperty('title', text(video.defaultTitle))
-            self.setProperty('summary', text(video.summary))
-            self.setProperty('year', text(video.year))
-            self.setProperty('poster', (video.art or video.defaultThumb).asTranscodedImageURL(*util.scaleResolution(520, 292)))
+        video = self.video
+        self.setProperty('title', text(video.defaultTitle))
+        self.setProperty('summary', text(video.summary))
+        self.setProperty('year', text(video.year))
+        self.setProperty('poster', (video.art or video.defaultThumb).asTranscodedImageURL(*util.scaleResolution(520, 292)))
         if self.browser.parent:
             self.setProperty('background', self.browser.parent.getProperty('background'))
 
@@ -198,7 +188,6 @@ class ReviewsWindow(ReviewBase):
         return True
 
     def render_page(self, selected=0):
-        self.setProperty('review.sort', self.sort)
         for order, label in [('TOP', T(35132, 'Top')), ('RECENT', T(35133, 'Recent')), ('HOT', T(35134, 'Popular')), ('FRIENDS', T(35103, 'Friends'))]:
             self.setProperty('sort.' + order, label + (' •' if order == self.sort else ''))
         self.cards.reset()
@@ -262,8 +251,6 @@ class ReviewWindow(ReviewBase):
         self.setBoolProperty('is.reply', self.reply)
         self.setProperty('review', text(self.node.get('message')) or T(35125, 'Rating without a written review'))
         self.setProperty('discussion', T(35115, 'Discussion') + ' ({})'.format(self.node.get('commentCount') or 0))
-        if not self.getProperty('title'):
-            self.setProperty('title', text((self.node.get('metadataItem') or {}).get('title')))
         if not self.reply:
             self.refresh_reactions()
             self.load_comments()
@@ -346,7 +333,7 @@ class ReviewWindow(ReviewBase):
             item = self.comments.getSelectedItem()
             if item:
                 # Reuse the styled reader for long replies; Back restores the discussion.
-                ReviewWindow.open(browser=self.browser, node=dict(item.dataSource, commentCount=0), video=self.video, reply=True)
+                ReviewWindow.open(browser=self.browser, node=item.dataSource, video=self.video, reply=True)
         elif controlID == 305 and self.history:
             self.cursor, self.current, selected = self.history.pop()
             self.render_comments(selected)
@@ -386,7 +373,7 @@ class ReactionPicker(kodigui.ControlledDialog):
         kodigui.BaseDialog.show(self)
 
     def onFirstInit(self):
-        for index, kind in enumerate(api.REACTION_TYPES):
+        for kind in api.REACTION_TYPES:
             self.setProperty('label.' + kind, T(*REACTION_LABELS[kind]))
             self.setBoolProperty('selected.' + kind, self.current == kind)
         self.setBoolProperty('has.reaction', bool(self.current))
