@@ -17,6 +17,8 @@ numeric ratings and Rotten Tomatoes critic excerpts in upstream PM4K.
   and select **Plex user reviews**. Review views include recent, top, popular
   and friends reviews. On a show's season list, a season's context menu opens
   its reviews; on an episode list the selected episode is the review target.
+- On Discover/watchlist movie pages, the **More** (three-dot) button opens
+  community reviews directly.
 - Select a review to read its full text, then select **Discussion** to read
   its comments or **View profile** to visit the author. Review pages and
   discussions have explicit next/previous page controls.
@@ -101,6 +103,20 @@ profiles, profile-review queries, activity and Discover search. The test
 suite covers privacy filtering, spoilers, account changes, bounded requests,
 pagination/retry behavior and use of PM4K's existing title opener rather than
 direct playback of online catalog metadata.
+
+Real GUI checks in portable Kodi 21.3 on Windows (Python 3.8.15) also
+verified full-profile sign-in, the community menu, 18 friends, profiles,
+empty profile-review handling, friends activity, Discover search and movie
+details with watchlist controls and server availability. Dune: Part Two top
+reviews opened full text and a populated discussion/comment; long text could
+be paged. Interstellar Discover reviews loaded, spoiler decline returned to
+the list, and next/previous review pages worked. Back navigation returned to
+the calling title/results/menu. No social or watchlist data was changed.
+
+The GUI checks found and fixed missing access to reviews on Discover movie
+pages. Their More button now opens only community reviews, avoiding server
+management actions on catalog metadata. Theme version 99 rebuilds the skin
+for existing installations. The full suite passed: 745 tests + 787 subtests.
 
 The Ugoos was unreachable at its prior IP during development. Installation,
 remote-control navigation and playback on the device remain to be validated.

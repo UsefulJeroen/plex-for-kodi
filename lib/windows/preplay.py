@@ -961,3 +961,13 @@ class PrePlayWindow(kodigui.ControlledWindow, windowutils.UtilMixin, RatingsMixi
 
 class PrePlayWindowWL(PrePlayWindow):
     xmlFile = 'script-plex-pre_play-wl.xml'
+
+    def onFirstInit(self):
+        from . import community
+        self.setBoolProperty('community.reviews', bool(community.title_option(self.video)))
+        super(PrePlayWindowWL, self).onFirstInit()
+
+    def optionsButtonClicked(self):
+        from . import community
+        if community.title_option(self.video):
+            community.show_reviews(self.video, parent=self)

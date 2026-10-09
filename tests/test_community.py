@@ -254,3 +254,21 @@ class BrowserTest(KodiTestCase):
         with mock.patch.object(ui.api, 'client_for_account', return_value=self.client):
             ui.show_home(mock.Mock())
         self.client.close.assert_called_once()
+
+
+class DiscoverReviewMenuTest(KodiTestCase):
+    def test_discover_menu_reads_reviews_without_server_mutations(self):
+        from lib.windows.preplay import PrePlayWindowWL
+        window = mock.Mock(video=mock.Mock(guid=GUID))
+        with mock.patch.object(ui, 'show_reviews') as show, \
+                mock.patch('lib.windows.dropdown.showDropdown') as dropdown:
+            PrePlayWindowWL.optionsButtonClicked(window)
+        show.assert_called_once_with(window.video, parent=window)
+        dropdown.assert_not_called()
+
+    def test_unmatched_discover_title_does_not_open_reviews(self):
+        from lib.windows.preplay import PrePlayWindowWL
+        window = mock.Mock(video=mock.Mock(guid='123'))
+        with mock.patch.object(ui, 'show_reviews') as show:
+            PrePlayWindowWL.optionsButtonClicked(window)
+        show.assert_not_called()
